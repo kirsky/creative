@@ -32,7 +32,7 @@
     font-size: var(--mantine-font-size-sm);
 
     &[data-overdue='true'] {
-      color: var(--mantine-color-error);
+      color: var(--app-danger-text);
       font-weight: 600;
     }
   }
@@ -205,7 +205,7 @@
       overflow-wrap: anywhere;
 
       &[data-overdue='true'] {
-        color: var(--mantine-color-error);
+        color: var(--app-danger-text);
         font-weight: 600;
       }
     }

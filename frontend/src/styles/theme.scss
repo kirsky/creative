@@ -7,4 +7,13 @@
   --app-border: var(--mantine-color-default-border);
   --app-text: var(--mantine-color-text);
   --app-text-muted: var(--mantine-color-dimmed);
+
+  // Overdue is the signal that asks for action: clearly red, and readable (4.5:1 or more) on the
+  // page, on cards and on a light-red tile. Mantine's error colour is too light on white and too
+  // dark on the dark scheme, and its red "light-color" is nearly white in the dark scheme.
+  --app-danger-text: var(--mantine-color-red-9);
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --app-danger-text: var(--mantine-color-red-4);
 }

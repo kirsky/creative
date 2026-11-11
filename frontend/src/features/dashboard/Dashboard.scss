@@ -73,7 +73,7 @@
   }
 
   &[data-danger='true'] &__value {
-    color: var(--mantine-color-red-light-color);
+    color: var(--app-danger-text);
   }
 }
 
@@ -133,7 +133,7 @@
     font-variant-numeric: tabular-nums;
 
     &[data-danger='true'] {
-      color: var(--mantine-color-red-light-color);
+      color: var(--app-danger-text);
       font-weight: 700;
     }
   }
@@ -173,7 +173,7 @@
   }
 
   &__late {
-    color: var(--mantine-color-red-light-color);
+    color: var(--app-danger-text);
     font-weight: 600;
   }
 }

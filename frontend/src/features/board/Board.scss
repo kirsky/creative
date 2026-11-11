@@ -231,7 +231,7 @@
     color: var(--app-text-muted);
 
     &[data-overdue='true'] {
-      color: var(--mantine-color-error);
+      color: var(--app-danger-text);
       font-weight: 600;
     }
   }
