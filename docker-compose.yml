@@ -100,7 +100,7 @@ services:
 # `down`/`up` on a busy host, and then every visitor would share one per-IP login-limit bucket (the
 # container nginx's address). 172.18.0.0/16 is the subnet this stack has always had and no other
 # network on the host uses it; if it ever collides, pick another free /16 inside 172.16.0.0/12
-# (`docker network inspect` the others) and recreate the stack (docs/handover.md).
+# (`docker network inspect` the others) and recreate the stack (docs/deployment.md).
 networks:
   default:
     ipam:
