@@ -24,6 +24,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY php.ini /usr/local/etc/php/conf.d/zz-app.ini
 
+# Migrates, seeds the demo when empty, then runs php-fpm (see the script).
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/creative-entrypoint
+
 # Run as an unprivileged user matching the host user, so files written into the
 # bind-mounted backend/ belong to you. Without root the pool's user/group are moot.
 RUN groupadd -o -g "${APP_GID}" app \
@@ -36,3 +39,6 @@ ENV COMPOSER_HOME=/home/app/.composer
 
 USER app
 WORKDIR /var/www/backend
+
+ENTRYPOINT ["creative-entrypoint"]
+CMD ["php-fpm"]

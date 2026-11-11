@@ -3,6 +3,9 @@
 
 declare(strict_types=1);
 
+use App\Demo\Cli\ResetCommand;
+use App\Demo\Cli\SeedCommand;
+use App\Demo\Cli\SeedIfEmptyCommand;
 use App\Identity\Cli\RotateCredentialsCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
@@ -23,6 +26,9 @@ $application = new Application('Creative task system');
 /** @var list<class-string<Command>> $commandClasses */
 $commandClasses = [
     RotateCredentialsCommand::class,
+    SeedCommand::class,
+    ResetCommand::class,
+    SeedIfEmptyCommand::class,
 ];
 
 foreach ($commandClasses as $commandClass) {

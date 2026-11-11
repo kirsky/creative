@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Demo\Cli\ResetCommand;
+use App\Demo\Cli\SeedCommand;
+use App\Demo\Cli\SeedIfEmptyCommand;
 use App\Files\AttachedTaskResolver;
 use App\Identity\Cli\RotateCredentialsCommand;
 use App\Rounds\RoundQuery;
@@ -53,6 +56,17 @@ return static function (array $overrides = []): ContainerInterface {
         // Demo commands take APP_ENV and the SAPI as plain constructor values (tests pass others);
         // DemoGuard decides what they may be.
         RotateCredentialsCommand::class => autowire()
+            ->constructorParameter('appEnv', factory(static fn(Config $config): string => $config->get('APP_ENV')))
+            ->constructorParameter('sapi', PHP_SAPI),
+
+        // The same for the three commands that fill and empty the demo.
+        SeedCommand::class => autowire()
+            ->constructorParameter('appEnv', factory(static fn(Config $config): string => $config->get('APP_ENV')))
+            ->constructorParameter('sapi', PHP_SAPI),
+        ResetCommand::class => autowire()
+            ->constructorParameter('appEnv', factory(static fn(Config $config): string => $config->get('APP_ENV')))
+            ->constructorParameter('sapi', PHP_SAPI),
+        SeedIfEmptyCommand::class => autowire()
             ->constructorParameter('appEnv', factory(static fn(Config $config): string => $config->get('APP_ENV')))
             ->constructorParameter('sapi', PHP_SAPI),
 
