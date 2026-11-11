@@ -94,7 +94,7 @@ e2e: ## DESTRUCTIVE, needs CONFIRM=yes: reset data, rotate all passwords, run Pl
 		echo "!!! make e2e reset the demo data and may have ROTATED THE PASSWORD OF EVERY ACCOUNT."; \
 		echo "!!! Credentials given to reviewers may no longer work; the new ones were never shown."; \
 		echo "!!! A run that completes sets every account's interface language back to English."; \
-		echo "!!! Before an evaluation: docker compose exec -T php composer demo:credentials:rotate"; \
+		echo "!!! Before an evaluation: docker compose exec php composer demo:credentials:rotate"; \
 		echo "!!! and deliver the new credentials. Never run e2e on a demo that reviewers are using."; \
 		exit $$code; \
 	}; \
