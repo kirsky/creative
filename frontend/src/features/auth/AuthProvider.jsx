@@ -5,6 +5,7 @@ import { apiFetch, setCsrfToken, setUnauthenticatedHandler } from '../../api/cli
 import { queryKeys } from '../../api/queryKeys';
 import { changeLanguage, setLocaleSavedHandler } from '../../i18n';
 import { isLanguage } from '../../i18n/detect';
+import { forgetLoginLanguage, takeLoginLanguage } from '../../i18n/loginLanguage';
 import { AuthContext } from './useAuth';
 
 /**
@@ -13,7 +14,8 @@ import { AuthContext } from './useAuth';
 
 /**
  * After sign-in the language the server has for the user wins. It is applied without sending it
- * back to the server (that would be a pointless PATCH, and a loop waiting to happen).
+ * back to the server (that would be a pointless PATCH, and a loop waiting to happen). The one
+ * exception is in signIn: a language picked by hand on the login page.
  * @param {Me} me
  */
 function applyServerLocale(me) {
@@ -72,6 +74,7 @@ export function AuthProvider({ children }) {
   const endSession = useCallback(() => {
     setCsrfToken(null);
     localeApplied.current = false;
+    forgetLoginLanguage();
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.me()[0] });
     queryClient.setQueryData(queryKeys.me(), null);
   }, [queryClient]);
@@ -105,8 +108,16 @@ export function AuthProvider({ children }) {
       await queryClient.cancelQueries({ queryKey: queryKeys.me() });
       setCsrfToken(user.csrfToken);
       localeApplied.current = true;
-      applyServerLocale(user);
       queryClient.setQueryData(queryKeys.me(), user);
+      // A language picked by hand on the login page during this visit beats the account's: it is
+      // kept and saved on the account (one PATCH, now that there is a CSRF token). Otherwise the
+      // account's language is applied.
+      const chosen = takeLoginLanguage();
+      if (chosen !== null && chosen !== user.locale) {
+        void changeLanguage(chosen);
+      } else {
+        applyServerLocale(user);
+      }
       setSignedOut(false);
       return user;
     },

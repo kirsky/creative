@@ -148,7 +148,7 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-page__language">
-        <LanguageSwitcher />
+        <LanguageSwitcher rememberForSignIn />
       </div>
       <main className="login-page__card">
         <form className="login-page__form" onSubmit={handleFormSubmit} noValidate>

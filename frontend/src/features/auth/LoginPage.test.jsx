@@ -2,6 +2,8 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { apiFetch, getCsrfToken, setCsrfToken } from '../../api/client';
+import i18n from '../../i18n';
+import { forgetLoginLanguage } from '../../i18n/loginLanguage';
 import { AppProviders } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { EMPTY_BOARD_TABLE } from '../../test/board';
@@ -51,6 +53,7 @@ const loginCalls = (fetchMock) =>
 
 beforeEach(() => {
   setCsrfToken(null);
+  forgetLoginLanguage();
 });
 
 describe('LoginPage', () => {
@@ -531,6 +534,71 @@ describe('LoginPage', () => {
       await act(async () => {});
       expect(getCsrfToken()).toBe('d'.repeat(64));
       expect(screen.queryByText('Stale Person')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('the language chosen on the login page', () => {
+    /** @param {ReturnType<typeof installFetch>} fetchMock */
+    const localeCalls = (fetchMock) =>
+      fetchMock.mock.calls.filter(([path]) => path === '/api/me/locale');
+
+    beforeEach(async () => {
+      await act(() => i18n.changeLanguage('en'));
+    });
+
+    it('is kept after sign-in and saved on the account with one PATCH', async () => {
+      const fetchMock = renderAt('/login', {
+        'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+        'PATCH /api/me/locale': mockResponse(200, makeMe({ locale: 'ru' })),
+      }).fetchMock;
+      await userEvent.click(await screen.findByRole('radio', { name: 'RU' }));
+      expect(i18n.language).toBe('ru');
+      expect(localeCalls(fetchMock)).toHaveLength(0);
+
+      await fillAndSubmit('alice', 'secret');
+      await screen.findByRole('heading', { level: 1 });
+      await waitFor(() => expect(localeCalls(fetchMock)).toHaveLength(1));
+      expect(JSON.parse(String(localeCalls(fetchMock)[0][1].body))).toEqual({ locale: 'ru' });
+      expect(i18n.language).toBe('ru');
+      expect(document.documentElement.lang).toBe('ru');
+    });
+
+    it('sends nothing when the account already has the chosen language', async () => {
+      const { fetchMock } = renderAt('/login', {
+        'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'ru' }) }),
+      });
+      await userEvent.click(await screen.findByRole('radio', { name: 'RU' }));
+      await fillAndSubmit('alice', 'secret');
+      await screen.findByRole('heading', { level: 1 });
+      expect(i18n.language).toBe('ru');
+      expect(localeCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('without a switch on the login page, the language of the account wins and nothing is sent', async () => {
+      // Russian from the browser or an earlier visit is not a choice made on this page.
+      await act(() => i18n.changeLanguage('ru'));
+      const { fetchMock } = renderAt('/login', {
+        'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+      });
+      await fillAndSubmit('alice', 'secret');
+      await screen.findByRole('heading', { level: 1 });
+      expect(i18n.language).toBe('en');
+      expect(localeCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('a switch after sign-in is still saved on the account', async () => {
+      const { fetchMock } = renderAt('/login', {
+        'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+        'PATCH /api/me/locale': mockResponse(200, makeMe({ locale: 'ru' })),
+      });
+      await fillAndSubmit('alice', 'secret');
+      await screen.findByRole('heading', { level: 1 });
+      expect(localeCalls(fetchMock)).toHaveLength(0);
+      await userEvent.click(
+        within(await screen.findByRole('banner')).getByRole('radio', { name: 'RU' }),
+      );
+      await waitFor(() => expect(localeCalls(fetchMock)).toHaveLength(1));
+      expect(i18n.language).toBe('ru');
     });
   });
 });

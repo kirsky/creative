@@ -5,6 +5,7 @@ import { queryKeys } from '../../api/queryKeys';
 import { apiFetch, getCsrfToken, setCsrfToken } from '../../api/client';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
 import i18n, { changeLanguage } from '../../i18n';
+import { forgetLoginLanguage, rememberLoginLanguage } from '../../i18n/loginLanguage';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './useAuth';
 
@@ -37,6 +38,7 @@ function renderProbe() {
 
 beforeEach(() => {
   setCsrfToken(null);
+  forgetLoginLanguage();
 });
 
 describe('AuthProvider', () => {
@@ -236,6 +238,47 @@ describe('a local language switch survives auth refetches', () => {
     await screen.findByText('user:alice:buyer');
     expect(i18n.language).toBe('en');
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/me/locale')).toBe(false);
+  });
+});
+
+describe('the language chosen on the login page', () => {
+  it('is forgotten on sign-out, so the next sign-in takes the language of the account', async () => {
+    const fetchMock = installFetch({
+      'GET /api/auth/me': mockResponse(200, makeMe({ locale: 'en' })),
+      'POST /api/auth/logout': mockResponse(204),
+      'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    rememberLoginLanguage('ru');
+    await userEvent.click(screen.getByText('sign out'));
+    await screen.findByText('anonymous');
+    await userEvent.click(screen.getByText('sign in'));
+    await screen.findByText('user:alice:buyer');
+    expect(i18n.language).toBe('en');
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/me/locale')).toBe(false);
+  });
+
+  it('is applied once: a later refetch of /me does not send it again', async () => {
+    const fetchMock = installFetch({
+      'GET /api/auth/me': errorResponse(401, 'unauthenticated'),
+      'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+      'PATCH /api/me/locale': mockResponse(200, makeMe({ locale: 'ru' })),
+    });
+    renderProbe();
+    await screen.findByText('anonymous');
+    rememberLoginLanguage('ru');
+    await userEvent.click(screen.getByText('sign in'));
+    await screen.findByText('user:alice:buyer');
+    const locale = () => fetchMock.mock.calls.filter(([path]) => path === '/api/me/locale');
+    await waitFor(() => expect(locale()).toHaveLength(1));
+    expect(i18n.language).toBe('ru');
+    installFetch({
+      'GET /api/auth/me': mockResponse(200, makeMe({ locale: 'en' })),
+      'PATCH /api/me/locale': mockResponse(200, makeMe({ locale: 'ru' })),
+    });
+    await userEvent.click(screen.getByText('refresh'));
+    expect(i18n.language).toBe('ru');
   });
 });
 
