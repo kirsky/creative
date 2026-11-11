@@ -188,7 +188,6 @@
   &:hover,
   &:focus-within {
     border-color: var(--mantine-primary-color-filled);
-    transform: translateY(-2px);
     box-shadow: var(--mantine-shadow-md);
   }
 
