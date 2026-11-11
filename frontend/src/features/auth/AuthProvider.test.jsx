@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { apiFetch, getCsrfToken, setCsrfToken } from '../../api/client';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
+import i18n from '../../i18n';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './useAuth';
 
@@ -104,6 +105,88 @@ describe('AuthProvider', () => {
     await apiFetch('/api/tasks').catch(() => {});
     expect(await screen.findByText('anonymous')).toBeInTheDocument();
     expect(getCsrfToken()).toBeNull();
+  });
+});
+
+describe('AuthProvider and the interface language', () => {
+  it('applies the locale the server has for the user, without sending it back', async () => {
+    const fetchMock = installFetch({
+      'GET /api/auth/me': mockResponse(200, makeMe({ locale: 'ru' })),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    expect(i18n.language).toBe('ru');
+    expect(document.documentElement.lang).toBe('ru');
+    expect(localStorage.getItem('creative.lang')).toBe('ru');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('the server value beats the language chosen before sign-in, with no PATCH', async () => {
+    await i18n.changeLanguage('en');
+    const fetchMock = installFetch({
+      'GET /api/auth/me': errorResponse(401, 'unauthenticated'),
+      'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'ru' }) }),
+    });
+    renderProbe();
+    await userEvent.click(await screen.findByText('sign in'));
+    await screen.findByText('user:alice:buyer');
+    expect(i18n.language).toBe('ru');
+    expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(['/api/auth/me', '/api/auth/login']);
+  });
+});
+
+describe('AuthProvider context value', () => {
+  it('keeps its identity across re-renders that change nothing it owns', async () => {
+    installFetch({ 'GET /api/auth/me': mockResponse(200, makeMe()) });
+    /** @type {import('./useAuth').AuthContextValue[]} */
+    const seen = [];
+    function Spy() {
+      seen.push(useAuth());
+      return null;
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    /** @param {{tick: number}} props */
+    function Tree({ tick }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Spy />
+            <span>{tick}</span>
+          </AuthProvider>
+        </QueryClientProvider>
+      );
+    }
+    const { rerender } = render(<Tree tick={0} />);
+    await waitFor(() => expect(seen.at(-1)?.user).not.toBeNull());
+    const settled = seen.at(-1);
+    for (let tick = 1; tick <= 3; tick += 1) {
+      await act(async () => rerender(<Tree tick={tick} />));
+    }
+    expect(seen.at(-1)).toBe(settled);
+    expect(seen.at(-1)?.refresh).toBe(settled?.refresh);
+  });
+
+  it('refresh reloads the user from the API', async () => {
+    const fetchMock = installFetch({ 'GET /api/auth/me': mockResponse(200, makeMe()) });
+    /** @type {import('./useAuth').AuthContextValue[]} */
+    const seen = [];
+    function Grab() {
+      seen.push(useAuth());
+      return null;
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Grab />
+        </AuthProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(seen.at(-1)?.user).not.toBeNull());
+    await act(async () => {
+      await seen.at(-1)?.refresh();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

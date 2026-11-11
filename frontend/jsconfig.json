@@ -10,10 +10,18 @@
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
+    "paths": { "dayjs/locale/*": ["./src/types/dayjs-locale.d.ts"] },
     "noUncheckedSideEffectImports": false,
     "lib": ["es2023", "dom", "dom.iterable"],
     "types": ["jest"]
   },
   "include": ["src", "jest.setup.js"],
-  "exclude": ["node_modules", "dist", "src/test/jsdomEnvironment.js", "src/test/styleStub.js"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/test/jsdomEnvironment.js",
+    "src/test/globalSetup.js",
+    "src/test/styleStub.js"
+  ]
 }

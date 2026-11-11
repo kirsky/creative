@@ -34,7 +34,7 @@ describe('AuthGuard', () => {
 
   it('redirects to /login when no user', async () => {
     const router = renderAt('/board', null);
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Login');
+    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Sign in');
     expect(router.state.location.pathname).toBe('/login');
   });
 
@@ -48,7 +48,7 @@ describe('AuthGuard', () => {
 
   it('lets /login be reached without a session', async () => {
     const router = renderAt('/login', null);
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Login');
+    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Sign in');
     expect(router.state.location.pathname).toBe('/login');
   });
 

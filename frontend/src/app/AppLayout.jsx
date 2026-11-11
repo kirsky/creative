@@ -1,26 +1,18 @@
 import { AppShell, Badge, Button, Container, Text } from '@mantine/core';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useAuth } from '../features/auth/useAuth';
 import './AppLayout.scss';
 
-// All user-visible text of this component.
-const TEXT = {
-  appName: 'Creative tasks',
-  mainNavigation: 'Main',
-  signOut: 'Sign out',
-  signOutFailed: 'Could not sign out, try again',
-  roles: { buyer: 'Media buyer', designer: 'Designer', manager: 'Manager' },
-  nav: { board: 'Board', newTask: 'New task', myWork: 'My work', dashboard: 'Dashboard' },
-};
+const BOARD = { to: '/board', labelKey: 'nav.board' };
 
-const BOARD = { to: '/board', label: TEXT.nav.board };
-
-/** @type {Record<import('../features/auth/useAuth').Me['role'], {to: string, label: string}[]>} */
+/** @type {Record<import('../features/auth/useAuth').Me['role'], {to: string, labelKey: string}[]>} */
 const NAV_LINKS = {
-  buyer: [BOARD, { to: '/tasks/new', label: TEXT.nav.newTask }],
-  designer: [{ to: '/my-work', label: TEXT.nav.myWork }, BOARD],
-  manager: [{ to: '/dashboard', label: TEXT.nav.dashboard }, BOARD],
+  buyer: [BOARD, { to: '/tasks/new', labelKey: 'nav.newTask' }],
+  designer: [{ to: '/my-work', labelKey: 'nav.myWork' }, BOARD],
+  manager: [{ to: '/dashboard', labelKey: 'nav.dashboard' }, BOARD],
 };
 
 /** @param {{isActive: boolean}} state */
@@ -31,6 +23,7 @@ function navLinkClass({ isActive }) {
 /** The shell of every signed-in page: header with navigation and the user, content below. */
 export function AppLayout() {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation('common');
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutFailed, setSignOutFailed] = useState(false);
 
@@ -54,25 +47,26 @@ export function AppLayout() {
       <AppShell.Header>
         <div className="app-header">
           <div className="app-header__start">
-            <span className="app-header__title">{TEXT.appName}</span>
-            <nav className="app-nav" aria-label={TEXT.mainNavigation}>
+            <span className="app-header__title">{t('appName')}</span>
+            <nav className="app-nav" aria-label={t('mainNavigation')}>
               {NAV_LINKS[user.role].map((link) => (
                 <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                  {link.label}
+                  {t(link.labelKey)}
                 </NavLink>
               ))}
             </nav>
           </div>
           <div className="app-header__end">
-            {signOutFailed && <span className="app-header__error">{TEXT.signOutFailed}</span>}
+            <LanguageSwitcher />
+            {signOutFailed && <span className="app-header__error">{t('signOutFailed')}</span>}
             <Text size="sm" visibleFrom="sm">
               {user.displayName}
             </Text>
             <Badge variant="light" visibleFrom="xs">
-              {TEXT.roles[user.role]}
+              {t(`roles.${user.role}`)}
             </Badge>
             <Button variant="default" size="xs" loading={isSigningOut} onClick={handleSignOut}>
-              {TEXT.signOut}
+              {t('signOut')}
             </Button>
           </div>
         </div>

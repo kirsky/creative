@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: '<rootDir>/src/test/jsdomEnvironment.js',
+  globalSetup: '<rootDir>/src/test/globalSetup.js',
   roots: ['<rootDir>/src', '<rootDir>/scripts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {

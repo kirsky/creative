@@ -3,11 +3,24 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { ApiRequestError } from '../../api/ApiRequestError';
 import { apiFetch, setCsrfToken, setUnauthenticatedHandler } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
+import { changeLanguage } from '../../i18n';
+import { isLanguage } from '../../i18n/detect';
 import { AuthContext } from './useAuth';
 
 /**
  * @typedef {import('./useAuth').Me} Me
  */
+
+/**
+ * After sign-in the language the server has for the user wins. It is applied without sending it
+ * back to the server (that would be a pointless PATCH, and a loop waiting to happen).
+ * @param {Me} me
+ */
+function applyServerLocale(me) {
+  if (isLanguage(me.locale)) {
+    void changeLanguage(me.locale, { syncServer: false });
+  }
+}
 
 /** @returns {Promise<Me | null>} null when nobody is signed in */
 async function fetchMe() {
@@ -15,6 +28,7 @@ async function fetchMe() {
     /** @type {Me} */
     const me = await apiFetch('/api/auth/me');
     setCsrfToken(me.csrfToken);
+    applyServerLocale(me);
     return me;
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
@@ -59,6 +73,7 @@ export function AuthProvider({ children }) {
         body: { username, password },
       });
       setCsrfToken(user.csrfToken);
+      applyServerLocale(user);
       queryClient.setQueryData(queryKeys.me(), user);
       return user;
     },
@@ -77,9 +92,11 @@ export function AuthProvider({ children }) {
     endSession();
   }, [endSession]);
 
+  // The query result object is new on every render; its refetch function is stable.
+  const { refetch } = meQuery;
   const refresh = useCallback(async () => {
-    await meQuery.refetch();
-  }, [meQuery]);
+    await refetch();
+  }, [refetch]);
 
   const value = useMemo(
     () => ({

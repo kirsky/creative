@@ -14,7 +14,7 @@ module.exports = [
       ecmaVersion: 'latest',
       sourceType: 'module',
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.browser },
+      globals: { ...globals.browser, process: 'readonly' },
     },
     settings: { react: { version: 'detect' } },
     rules: {
@@ -26,11 +26,17 @@ module.exports = [
     },
   },
   {
-    files: ['src/**/*.test.{js,jsx}', 'jest.setup.js', 'src/test/**'],
+    files: ['src/**/*.test.{js,jsx}', 'scripts/**/*.test.js', 'jest.setup.js', 'src/test/**'],
     languageOptions: {
       sourceType: 'module',
       globals: { ...globals.browser, ...globals.jest, ...globals.node },
     },
+  },
+  {
+    // Text for people belongs in src/i18n/locales, not in components.
+    files: ['src/**/*.jsx'],
+    ignores: ['**/*.test.jsx'],
+    rules: { 'react/jsx-no-literals': 'error' },
   },
   {
     // Tooling files run in Node as CommonJS.
@@ -38,6 +44,7 @@ module.exports = [
       '*.config.js',
       'scripts/**/*.js',
       'src/test/styleStub.js',
+      'src/test/globalSetup.js',
       'src/test/jsdomEnvironment.js',
     ],
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },

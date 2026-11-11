@@ -10,7 +10,7 @@ import { AppLayout } from './AppLayout';
 // task page, my work and dashboard.
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
-  { path: '/login', element: <ComingSoon name="Login" /> },
+  { path: '/login', element: <ComingSoon titleKey="auth:login.title" /> },
   {
     element: <AuthGuard />,
     children: [
@@ -18,12 +18,12 @@ export const routes = [
         element: <AppLayout />,
         children: [
           { path: '/', element: <RoleHome /> },
-          { path: '/board', element: <ComingSoon name="Board" /> },
+          { path: '/board', element: <ComingSoon titleKey="board:title" /> },
           {
             path: '/tasks/new',
             element: (
               <RoleRoute roles={['buyer']}>
-                <ComingSoon name="New task" />
+                <ComingSoon titleKey="common:nav.newTask" />
               </RoleRoute>
             ),
           },
@@ -32,7 +32,7 @@ export const routes = [
             path: '/my-work',
             element: (
               <RoleRoute roles={['designer']}>
-                <ComingSoon name="My work" />
+                <ComingSoon titleKey="common:nav.myWork" />
               </RoleRoute>
             ),
           },
@@ -40,7 +40,7 @@ export const routes = [
             path: '/dashboard',
             element: (
               <RoleRoute roles={['manager']}>
-                <ComingSoon name="Dashboard" />
+                <ComingSoon titleKey="dashboard:title" />
               </RoleRoute>
             ),
           },

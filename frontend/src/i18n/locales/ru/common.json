@@ -1,0 +1,41 @@
+{
+  "appName": "Креативные задачи",
+  "loading": "Загрузка",
+  "comingSoon": "Скоро здесь появится",
+  "pageNotFound": "Страница не найдена",
+  "goToStartPage": "Перейти на стартовую страницу",
+  "signOut": "Выйти",
+  "signOutFailed": "Не удалось выйти, попробуйте ещё раз",
+  "mainNavigation": "Основное меню",
+  "language": {
+    "label": "Язык"
+  },
+  "nav": {
+    "board": "Доска",
+    "newTask": "Новая задача",
+    "myWork": "Моя работа",
+    "dashboard": "Аналитика"
+  },
+  "roles": {
+    "buyer": "Медиабайер",
+    "designer": "Креативный дизайнер",
+    "manager": "Менеджер"
+  },
+  "creatives_one": "{{count}} креатив",
+  "creatives_few": "{{count}} креатива",
+  "creatives_many": "{{count}} креативов",
+  "creatives_other": "{{count}} креатива",
+  "duration": {
+    "lessThanMinute": "< 1 мин",
+    "days": "{{value}} д",
+    "hours": "{{value}} ч",
+    "minutes": "{{value}} мин"
+  },
+  "regions": {
+    "WW": "Весь мир",
+    "EU": "Европа",
+    "LATAM": "Латинская Америка",
+    "MENA": "Ближний Восток и Северная Африка",
+    "CIS": "СНГ"
+  }
+}

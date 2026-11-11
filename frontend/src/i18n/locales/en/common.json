@@ -1,0 +1,39 @@
+{
+  "appName": "Creative Tasks",
+  "loading": "Loading",
+  "comingSoon": "Coming soon",
+  "pageNotFound": "Page not found",
+  "goToStartPage": "Go to your start page",
+  "signOut": "Sign out",
+  "signOutFailed": "Could not sign out, try again",
+  "mainNavigation": "Main",
+  "language": {
+    "label": "Language"
+  },
+  "nav": {
+    "board": "Board",
+    "newTask": "New task",
+    "myWork": "My work",
+    "dashboard": "Dashboard"
+  },
+  "roles": {
+    "buyer": "Media Buyer",
+    "designer": "Creative Designer",
+    "manager": "Manager"
+  },
+  "creatives_one": "{{count}} creative",
+  "creatives_other": "{{count}} creatives",
+  "duration": {
+    "lessThanMinute": "< 1 m",
+    "days": "{{value}} d",
+    "hours": "{{value}} h",
+    "minutes": "{{value}} m"
+  },
+  "regions": {
+    "WW": "Worldwide",
+    "EU": "Europe",
+    "LATAM": "Latin America",
+    "MENA": "Middle East and North Africa",
+    "CIS": "CIS"
+  }
+}
