@@ -200,6 +200,60 @@ describe('renderEventDetails', () => {
     expect(lines).toEqual([`Description: ${exactly80} → ${'🎰'.repeat(80)}…`]);
   });
 
+  /** @param {string} old @param {string} next */
+  const descriptionLine = (old, next) =>
+    renderEventDetails(
+      i18n.getFixedT('en'),
+      edited([{ field: 'description', old, new: next }]),
+      'en',
+    )[0];
+
+  it('shows the end of a long description where a sentence was added, not the same start twice', () => {
+    const old = `${'Intro sentence. '.repeat(6)}Logo top left.`; // 110 characters
+    const next = `${old} Add a 3-second CTA at the end.`;
+    const line = descriptionLine(old, next);
+    const [, sides] = line.split('Description: ');
+    const [before, after] = sides.split(' → ');
+    expect(before).not.toBe(after);
+    expect(before).toMatch(/^….*Logo top left\.$/);
+    expect(after).toMatch(/^….*Logo top left\. Add a 3-second CTA at the end\.$/);
+    expect(Array.from(after.slice(1))).toHaveLength(80);
+  });
+
+  it('cuts both sides around a difference at the end, with an ellipsis where text is left out', () => {
+    const lead = 'x'.repeat(120);
+    expect(
+      descriptionLine(`${lead} the bonus is now 100 %`, `${lead} the bonus is now 150 %`),
+    ).toBe(
+      `Description: …${'x'.repeat(57)} the bonus is now 100 % → …${'x'.repeat(57)} the bonus is now 150 %`,
+    );
+  });
+
+  it('cuts both sides around a difference in the middle', () => {
+    const head = 'h'.repeat(100);
+    const tail = 't'.repeat(100);
+    expect(descriptionLine(`${head}OLD${tail}`, `${head}NEW${tail}`)).toBe(
+      `Description: …${'h'.repeat(40)}OLD${'t'.repeat(37)}… → …${'h'.repeat(40)}NEW${'t'.repeat(37)}…`,
+    );
+  });
+
+  it('keeps the start when the difference is at the start', () => {
+    const tail = 'z'.repeat(150);
+    expect(descriptionLine(`A${tail}`, `B${tail}`)).toBe(
+      `Description: A${'z'.repeat(79)}… → B${'z'.repeat(79)}…`,
+    );
+  });
+
+  it('counts code points, so Cyrillic and emoji are never split', () => {
+    const head = 'Лото🎰'.repeat(30); // 150 code points
+    const line = descriptionLine(`${head}старый`, `${head}новый🎉`);
+    const [before, after] = line.replace('Description: ', '').split(' → ');
+    expect(before).toMatch(/старый$/);
+    expect(after).toMatch(/новый🎉$/);
+    expect(Array.from(after.slice(1))).toHaveLength(80);
+    expect(line).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
+  });
+
   it('shows a dash for an empty value and a generic label for an unknown field', () => {
     const t = i18n.getFixedT('en');
     const lines = renderEventDetails(

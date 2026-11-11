@@ -27,7 +27,7 @@ const BRIEF_FIELDS = new Set([
   'deadline',
 ]);
 
-/** A description in the activity list is cut to this many characters. */
+/** A changed description in the activity list is cut to this many characters per side. */
 const DESCRIPTION_LIMIT = 80;
 
 /** What is shown for a value that is missing. */
@@ -67,6 +67,36 @@ function textOf(value) {
 function truncate(text, limit) {
   const characters = Array.from(text);
   return characters.length <= limit ? text : `${characters.slice(0, limit).join('')}…`;
+}
+
+/**
+ * Both sides of a changed long text, each cut to at most `limit` characters (whole code points, so
+ * an emoji is never split) around the first place they differ, with "…" where text is left out.
+ * Both windows start at the same character and contain the first difference, so the two sides
+ * never read the same. The window is centred on the difference, or ends with the longer text when
+ * the difference is near its end. Texts that both fit are shown whole.
+ * @param {string} oldText
+ * @param {string} newText
+ * @param {number} limit
+ * @returns {[string, string]}
+ */
+export function diffWindows(oldText, newText, limit) {
+  const before = Array.from(oldText);
+  const after = Array.from(newText);
+  if (before.length <= limit && after.length <= limit) {
+    return [oldText, newText];
+  }
+  let first = 0;
+  while (first < before.length && first < after.length && before[first] === after[first]) {
+    first += 1;
+  }
+  const longest = Math.max(before.length, after.length);
+  const start = Math.max(0, Math.min(first - Math.floor(limit / 2), longest - limit));
+  const cut = (/** @type {string[]} */ characters) =>
+    `${start > 0 ? '…' : ''}${characters.slice(start, start + limit).join('')}${
+      start + limit < characters.length ? '…' : ''
+    }`;
+  return [cut(before), cut(after)];
 }
 
 /**
@@ -113,10 +143,6 @@ function formatFieldValue(t, lng, field, value) {
     }
     case 'quantity':
       return typeof value === 'number' ? formatNumber(value, lng) : (textOf(value) ?? NONE);
-    case 'description': {
-      const text = textOf(value);
-      return text === undefined ? NONE : truncate(text, DESCRIPTION_LIMIT);
-    }
     default:
       return textOf(value) ?? NONE;
   }
@@ -214,11 +240,19 @@ export function renderEventDetails(t, event, lng = languageOf(t)) {
     if (typeof field !== 'string') {
       return [];
     }
+    let before = formatFieldValue(t, lng, field, change.old);
+    let after = formatFieldValue(t, lng, field, change.new);
+    // A long text is shown around what changed; short fields are shown whole.
+    if (field === 'description' && before !== NONE && after !== NONE) {
+      [before, after] = diffWindows(before, after, DESCRIPTION_LIMIT);
+    } else if (field === 'description') {
+      [before, after] = [before, after].map((text) => truncate(text, DESCRIPTION_LIMIT));
+    }
     return [
       t('task:events.change', {
         field: BRIEF_FIELDS.has(field) ? t(`task:fields.${field}`) : t('task:fields.unknown'),
-        old: formatFieldValue(t, lng, field, change.old),
-        new: formatFieldValue(t, lng, field, change.new),
+        old: before,
+        new: after,
       }),
     ];
   });
