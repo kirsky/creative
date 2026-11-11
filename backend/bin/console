@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use App\Identity\Cli\RotateCredentialsCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 
@@ -20,7 +21,9 @@ $application = new Application('Creative task system');
 
 // Commands are resolved through the container. Later tasks register theirs here.
 /** @var list<class-string<Command>> $commandClasses */
-$commandClasses = [];
+$commandClasses = [
+    RotateCredentialsCommand::class,
+];
 
 foreach ($commandClasses as $commandClass) {
     $command = $container->get($commandClass);
