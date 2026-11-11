@@ -120,6 +120,35 @@ final class SeedTest extends DemoTestCase
         self::assertGreaterThan($now->sub(new DateInterval('PT12H')), $last, 'something happened today');
     }
 
+    public function test_brief_edits_show_a_short_field_that_changed(): void
+    {
+        $this->sharedSeed();
+
+        $edits = $this->fetchRows(
+            "SELECT t.offer, t.priority, t.quantity, u.username, e.payload
+             FROM task_events e JOIN tasks t ON t.id = e.task_id JOIN users u ON u.id = e.actor_id
+             WHERE e.type = 'brief_edited' ORDER BY e.at, e.id",
+        );
+        self::assertCount(2, $edits);
+
+        // Casino Royal: the bonus line of the description and the priority, normal → high.
+        self::assertSame(['Casino Royal', 'high', 'dmitry'], [$edits[0]['offer'], $edits[0]['priority'], $edits[0]['username']]);
+        $changes = self::decodePayload($edits[0]['payload'])['changes'];
+        self::assertIsArray($changes);
+        self::assertSame(['description', 'priority'], array_column($changes, 'field'));
+        self::assertSame(['field' => 'priority', 'old' => 'normal', 'new' => 'high'], $changes[1]);
+
+        // Slot Mania: the buyer raised the quantity from 4 to 6 before anyone picked it up.
+        self::assertSame(['Slot Mania', 6, 'elena'], [$edits[1]['offer'], self::integer($edits[1]['quantity']), $edits[1]['username']]);
+        self::assertSame(
+            [['field' => 'quantity', 'old' => 4, 'new' => 6]],
+            self::decodePayload($edits[1]['payload'])['changes'],
+        );
+
+        // The field audit holds one row per changed field.
+        self::assertSame(3, $this->countRows('task_field_changes'));
+    }
+
     public function test_traced_task_event_order_and_180_credits(): void
     {
         $this->sharedSeed();

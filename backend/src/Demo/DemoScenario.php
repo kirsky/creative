@@ -23,6 +23,7 @@ use App\Identity\Role;
  *  - Crypto Wave was released with a revision pending: New again, "returning".
  *  - Мега Спин (2 d late) and Лото Клуб (1 d late) are the overdue ones.
  *  - Dragon Gold was cancelled while New, Fruit Party in the middle of the work.
+ *  - Casino Royal (description and priority) and Slot Mania (quantity) have brief edits in their history.
  */
 final class DemoScenario
 {
@@ -168,7 +169,8 @@ final class DemoScenario
                 ['DE'],
                 'video',
                 3,
-                'high',
+                // Raised to high by the edit below.
+                'normal',
                 'Three videos for the German market, 9:16, with subtitles and a closing CTA. Бонус и условия — в референсах.',
                 'dmitry',
                 self::ago(6, 2),
@@ -176,7 +178,10 @@ final class DemoScenario
                 ['https://example.com/briefs/casino-royal'],
                 ['casino_royal_terms.png'],
                 [
-                    PlannedStep::edit(self::ago(5), 'dmitry', ['description' => "Three videos for the German market, 9:16, with subtitles and a closing CTA. Бонус и условия — в референсах.\nUpdate: the bonus is now 150 %."]),
+                    PlannedStep::edit(self::ago(5), 'dmitry', [
+                        'description' => "Three videos for the German market, 9:16, with subtitles and a closing CTA. Бонус и условия — в референсах.\nUpdate: the bonus is now 150 %.",
+                        'priority' => 'high',
+                    ]),
                     PlannedStep::pickUp(self::ago(4, 6), 'anna'),
                     PlannedStep::submit(
                         self::ago(3, 4),
@@ -307,7 +312,8 @@ final class DemoScenario
                 'Slot Mania',
                 ['DE'],
                 'static_image',
-                6,
+                // Raised to 6 by the edit below.
+                4,
                 'normal',
                 'Six static banners for Germany, 1:1 and 4:5. Ein Banner pro Slot-Thema.',
                 'elena',
@@ -315,7 +321,10 @@ final class DemoScenario
                 self::ago(3),
                 [],
                 [],
-                [PlannedStep::pickUp(self::ago(1, 20), 'igor')],
+                [
+                    PlannedStep::edit(self::ago(1, 22), 'elena', ['quantity' => 6]),
+                    PlannedStep::pickUp(self::ago(1, 20), 'igor'),
+                ],
             ),
             new PlannedTask(
                 'Tea Land',
