@@ -145,6 +145,7 @@ export function SubmitDialog({ taskId, onClose }) {
             </Button>
             <Button
               type="submit"
+              variant="gradient"
               disabled={uploading || submit.isPending}
               loading={uploading || submit.isPending}
             >

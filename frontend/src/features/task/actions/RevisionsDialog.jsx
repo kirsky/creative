@@ -69,7 +69,12 @@ export function RevisionsDialog({ taskId, onClose }) {
             <Button variant="default" onClick={onClose} disabled={revisions.isPending}>
               {t('common:cancel')}
             </Button>
-            <Button type="submit" loading={revisions.isPending} disabled={revisions.isPending}>
+            <Button
+              type="submit"
+              variant="gradient"
+              loading={revisions.isPending}
+              disabled={revisions.isPending}
+            >
               {t('task:actions.revisionsDialog.submit')}
             </Button>
           </Group>

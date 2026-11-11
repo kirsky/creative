@@ -193,7 +193,9 @@ describe('assigned tasks', () => {
     const marked = items.filter((item) => item.dataset.attention === 'true');
     expect(marked).toHaveLength(1);
     expect(marked[0]).toHaveTextContent('Casino Royal');
-    expect(within(marked[0]).getByText('Needs your attention')).toBeInTheDocument();
+    const note = within(marked[0]).getByText('Needs your attention');
+    expect(note).toBeInTheDocument();
+    expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(within(assigned).getAllByText('Needs your attention')).toHaveLength(1);
   });
 

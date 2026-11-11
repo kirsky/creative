@@ -249,7 +249,12 @@ function EditBriefForm({ task, options, onClose, edit }) {
           <Button variant="default" onClick={onClose} disabled={edit.isPending}>
             {t('common:cancel')}
           </Button>
-          <Button type="submit" loading={edit.isPending} disabled={edit.isPending}>
+          <Button
+            type="submit"
+            variant="gradient"
+            loading={edit.isPending}
+            disabled={edit.isPending}
+          >
             {t('task:actions.editBrief.save')}
           </Button>
         </Group>

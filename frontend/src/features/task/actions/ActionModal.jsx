@@ -28,6 +28,8 @@ export function ActionModal({ title, pending, onClose, size = 'md', children }) 
       size={size}
       closeOnEscape={!pending}
       closeOnClickOutside={false}
+      radius="lg"
+      classNames={{ content: 'app-paper' }}
       closeButtonProps={{ 'aria-label': t('close'), disabled: pending }}
     >
       {children}

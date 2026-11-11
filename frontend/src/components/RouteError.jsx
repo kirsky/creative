@@ -1,5 +1,7 @@
 import { Button, Stack, Text, Title } from '@mantine/core';
+import { ArrowClockwise, WarningOctagon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from './Icon';
 import { reloadPage } from './reloadPage';
 
 /**
@@ -11,9 +13,12 @@ export function RouteError() {
   const { t } = useTranslation('common');
   return (
     <Stack gap="sm" align="flex-start" role="alert">
+      <Icon icon={WarningOctagon} size={48} weight="duotone" />
       <Title order={1}>{t('routeError.title')}</Title>
       <Text>{t('routeError.text')}</Text>
-      <Button onClick={reloadPage}>{t('routeError.reload')}</Button>
+      <Button variant="gradient" leftSection={<Icon icon={ArrowClockwise} />} onClick={reloadPage}>
+        {t('routeError.reload')}
+      </Button>
     </Stack>
   );
 }

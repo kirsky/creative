@@ -88,7 +88,13 @@ export function ConfirmDialog({
             <Button variant="default" onClick={onClose} disabled={pending}>
               {dismissLabel ?? t('common:cancel')}
             </Button>
-            <Button type="submit" color={confirmColor} loading={pending} disabled={pending}>
+            <Button
+              type="submit"
+              color={confirmColor}
+              variant={confirmColor === undefined ? 'gradient' : 'filled'}
+              loading={pending}
+              disabled={pending}
+            >
               {confirmLabel}
             </Button>
           </Group>

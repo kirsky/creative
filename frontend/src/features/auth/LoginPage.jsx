@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { z } from 'zod';
 import { ApiRequestError } from '../../api/ApiRequestError';
+import { BrandMark } from '../../components/BrandMark';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { groupFieldErrors, translateApiError, translateFieldError } from '../../i18n/errors';
 import { landingPath, returnPath } from './landing';
@@ -153,7 +154,8 @@ export function LoginPage() {
       <main className="login-page__card">
         <form className="login-page__form" onSubmit={handleFormSubmit} noValidate>
           <Stack gap="md">
-            <div>
+            <div className="login-page__brand">
+              <BrandMark size={40} />
               <Title order={1} size="h2">
                 {t('common:appName')}
               </Title>
@@ -187,7 +189,7 @@ export function LoginPage() {
               aria-invalid={fieldError('password') !== undefined}
               {...register('password')}
             />
-            <Button type="submit" fullWidth loading={isSubmitting}>
+            <Button type="submit" fullWidth variant="gradient" loading={isSubmitting}>
               {t('auth:login.submit')}
             </Button>
           </Stack>

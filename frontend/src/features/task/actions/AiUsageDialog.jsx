@@ -66,7 +66,12 @@ export function AiUsageDialog({ taskId, round, lines, onClose }) {
             <Button variant="default" onClick={onClose} disabled={replace.isPending}>
               {t('common:cancel')}
             </Button>
-            <Button type="submit" loading={replace.isPending} disabled={replace.isPending}>
+            <Button
+              type="submit"
+              variant="gradient"
+              loading={replace.isPending}
+              disabled={replace.isPending}
+            >
               {t('task:actions.aiUsage.save')}
             </Button>
           </Group>

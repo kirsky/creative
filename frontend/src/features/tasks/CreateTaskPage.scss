@@ -4,16 +4,20 @@
     max-width: 45rem;
     margin: 0 auto;
     padding: var(--mantine-spacing-xl);
-    border: 1px solid var(--mantine-color-default-border);
-    border-radius: var(--mantine-radius-md);
-    background-color: var(--mantine-color-body);
-    box-shadow: var(--mantine-shadow-sm);
+    border: 1px solid var(--app-border);
+    border-radius: var(--mantine-radius-xl);
+    background-color: var(--app-card-bg);
+    box-shadow: var(--app-card-shadow);
   }
 
   &__section {
     display: flex;
     flex-direction: column;
     gap: var(--mantine-spacing-md);
+    padding: var(--mantine-spacing-md);
+    border: 1px solid var(--app-border);
+    border-radius: var(--mantine-radius-lg);
+    background-color: var(--app-column-bg);
   }
 
   &__links {

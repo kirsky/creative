@@ -1,4 +1,9 @@
+import { ArrowUUpLeft, Timer, Tray } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../components/Icon';
+
+/** The icon of each counter. */
+const COUNTER_ICONS = { in_progress: Timer, revisions_required: ArrowUUpLeft, available: Tray };
 
 /** The counters, in order. */
 const COUNTERS = /** @type {const} */ (['in_progress', 'revisions_required', 'available']);
@@ -22,6 +27,9 @@ export function Counters({ counts }) {
             key === 'revisions_required' && (counts?.[key] ?? 0) > 0 ? 'true' : undefined
           }
         >
+          <span className="my-work-counters__icon">
+            <Icon icon={COUNTER_ICONS[key]} size={20} weight="duotone" />
+          </span>
           <span className="my-work-counters__value">
             {counts === undefined ? '—' : counts[key]}
           </span>

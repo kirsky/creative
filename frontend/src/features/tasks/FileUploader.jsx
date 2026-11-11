@@ -1,3 +1,5 @@
+import { Paperclip } from '@phosphor-icons/react';
+import { Icon } from '../../components/Icon';
 import { Button, CloseButton, FileButton, Input, Loader, Text } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -140,7 +142,12 @@ export function FileUploader({ value, onChange, maxFiles = MAX_REFERENCES }) {
       <div className="file-uploader">
         <FileButton onChange={addFiles} multiple resetRef={resetPicker}>
           {(props) => (
-            <Button {...props} variant="default" className="file-uploader__attach">
+            <Button
+              {...props}
+              variant="default"
+              leftSection={<Icon icon={Paperclip} />}
+              className="file-uploader__attach"
+            >
               {t('create.references.attach')}
             </Button>
           )}

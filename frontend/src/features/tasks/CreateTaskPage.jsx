@@ -16,10 +16,12 @@ import {
   Title,
 } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
+import { PaperPlaneTilt, Plus } from '@phosphor-icons/react';
 import dayjs from 'dayjs';
 import { useRef, useState } from 'react';
 import { Controller, get, useFieldArray, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../components/Icon';
 import { Link } from 'react-router';
 import { ApiRequestError } from '../../api/ApiRequestError';
 import { translateApiError, translateFieldError } from '../../i18n/errors';
@@ -405,6 +407,7 @@ function CreateTaskForm({ options }) {
               ))}
               <Button
                 variant="default"
+                leftSection={<Icon icon={Plus} />}
                 className="create-task__add-link"
                 disabled={referenceCount >= MAX_REFERENCES}
                 onClick={() => urls.append({ value: '' }, { shouldFocus: true })}
@@ -432,7 +435,13 @@ function CreateTaskForm({ options }) {
           <Button component={Link} to="/board" variant="default">
             {t('common:cancel')}
           </Button>
-          <Button type="submit" disabled={uploading} loading={isSubmitting || uploading}>
+          <Button
+            type="submit"
+            variant="gradient"
+            leftSection={<Icon icon={PaperPlaneTilt} />}
+            disabled={uploading}
+            loading={isSubmitting || uploading}
+          >
             {t('task:create.submit')}
           </Button>
         </div>

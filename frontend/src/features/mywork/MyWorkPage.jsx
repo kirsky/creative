@@ -1,8 +1,10 @@
 import { Alert, Anchor, Button, Skeleton, Title } from '@mantine/core';
+import { WarningCircle } from '@phosphor-icons/react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ApiRequestError } from '../../api/ApiRequestError';
+import { Icon } from '../../components/Icon';
 import { translateApiError } from '../../i18n/errors';
 import { useAuth } from '../auth/useAuth';
 import { TaskCard } from '../board/TaskCard';
@@ -94,7 +96,10 @@ export function MyWorkPage() {
           data-attention={task.status === 'revisions_required' ? 'true' : undefined}
         >
           {task.status === 'revisions_required' && (
-            <p className="my-work__attention">{t('mywork:attention')}</p>
+            <p className="my-work__attention">
+              <Icon icon={WarningCircle} size={16} weight="fill" />
+              {t('mywork:attention')}
+            </p>
           )}
           <TaskCard task={task} showStatus />
         </li>

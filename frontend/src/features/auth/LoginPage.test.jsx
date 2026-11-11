@@ -602,3 +602,12 @@ describe('LoginPage', () => {
     });
   });
 });
+
+describe('login page brand', () => {
+  it('shows the decorative brand mark above the app name', async () => {
+    renderAt('/login');
+    await usernameField();
+    expect(document.querySelector('.login-page__card .brand-mark')).not.toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Creative Hub');
+  });
+});
