@@ -13,9 +13,11 @@ use Monolog\Logger;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\AbstractLogger;
 use RuntimeException;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Stringable;
 use Throwable;
 
 final class ErrorFormatTest extends ApiTestCase
@@ -94,6 +96,59 @@ final class ErrorFormatTest extends ApiTestCase
         $this->dispatch(new ApiError(503, 'internal_error'));
 
         self::assertTrue($this->logs->hasErrorRecords());
+    }
+
+    public function test_an_error_body_that_cannot_be_encoded_falls_back_to_a_plain_internal_error(): void
+    {
+        // Not what the Validator produces any more, but nothing may rely on every producer being careful.
+        $error = new ApiError(422, 'validation_failed', [['field' => "\xFF", 'code' => 'unknown_field', 'params' => []]]);
+
+        $response = $this->dispatch($error);
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertSame('{"error":{"code":"internal_error","fields":[]}}', (string) $response->getBody());
+        self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
+        $this->assertMatchesSchema('Error', $response);
+        // The encoding failure is logged for the operator.
+        self::assertTrue($this->logs->hasErrorRecords());
+    }
+
+    public function test_unencodable_params_also_fall_back(): void
+    {
+        $response = $this->dispatch(new ApiError(409, 'invalid_transition', params: ['bad' => "\xB1\x31"]));
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertSame('{"error":{"code":"internal_error","fields":[]}}', (string) $response->getBody());
+    }
+
+    public function test_the_fallback_keeps_no_headers_of_the_error_it_replaced(): void
+    {
+        $response = $this->dispatch(new ApiError(429, 'rate_limited', params: ['x' => "\xFF"], headers: ['Retry-After' => '30']));
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertFalse($response->hasHeader('Retry-After'));
+    }
+
+    public function test_a_logger_that_fails_cannot_break_the_error_response(): void
+    {
+        $failing = new class extends AbstractLogger {
+            public function log(mixed $level, string|Stringable $message, array $context = []): void
+            {
+                throw new RuntimeException('log sink is down');
+            }
+        };
+        $middleware = new ErrorMiddleware(new JsonResponder(new ResponseFactory()), $failing);
+        $handler = new class implements RequestHandlerInterface {
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                throw new RuntimeException('boom');
+            }
+        };
+
+        $response = $middleware->process((new ServerRequestFactory())->createServerRequest('GET', '/api/x'), $handler);
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertSame('{"error":{"code":"internal_error","fields":[]}}', (string) $response->getBody());
     }
 
     public function test_api_error_named_constructors(): void

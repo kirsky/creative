@@ -22,6 +22,11 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final class Validator
 {
+    /** Reported instead of a client-supplied field name that is not safe to echo. */
+    private const UNREADABLE_FIELD = '_invalid';
+
+    private const MAX_FIELD_NAME_LENGTH = 100;
+
     private readonly ValidatorInterface $validator;
 
     public function __construct(?ValidatorInterface $validator = null)
@@ -30,8 +35,8 @@ final class Validator
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed> the data, unchanged
+     * @param array<array-key, mixed> $data decoded request data (a urlencoded body can have integer keys)
+     * @return array<array-key, mixed> the data, unchanged
      * @throws ApiError 422 validation_failed listing every violation
      */
     public function validate(array $data, Collection $rules): array
@@ -56,14 +61,23 @@ final class Validator
 
     /**
      * "[links][1]" becomes "links.1".
+     *
+     * Field names that were not declared in the rules are whatever the client sent as a key, and a
+     * urlencoded body can carry any bytes there. Such a name is echoed in the error body only if it
+     * is readable text of sane length; otherwise the fixed name "_invalid" stands in for it.
      */
     private static function field(string $propertyPath): string
     {
+        $field = $propertyPath;
         if (preg_match_all('/\[([^\]]*)\]/', $propertyPath, $matches) > 0 && implode('', $matches[0]) === $propertyPath) {
-            return implode('.', $matches[1]);
+            $field = implode('.', $matches[1]);
         }
 
-        return $propertyPath;
+        $readable = mb_check_encoding($field, 'UTF-8')
+            && preg_match('/\p{Cc}/u', $field) !== 1
+            && mb_strlen($field, 'UTF-8') <= self::MAX_FIELD_NAME_LENGTH;
+
+        return $readable ? $field : self::UNREADABLE_FIELD;
     }
 
     private static function code(ConstraintViolationInterface $violation): string

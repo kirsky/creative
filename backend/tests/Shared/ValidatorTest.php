@@ -6,6 +6,7 @@ namespace App\Tests\Shared;
 
 use App\Shared\Http\ApiError;
 use App\Shared\Validation\Validator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -112,6 +113,45 @@ final class ValidatorTest extends TestCase
         );
 
         self::assertSame([['field' => 'offer', 'code' => 'invalid', 'params' => []]], $error->fields);
+    }
+
+    /**
+     * A field name comes from the client (a urlencoded body can carry any bytes), so it must be
+     * safe to put in a JSON error body: anything unreadable is reported under a fixed name.
+     */
+    #[DataProvider('unsafeFieldNames')]
+    public function test_a_client_supplied_field_name_that_is_not_safe_text_is_reported_under_a_fixed_name(string $key): void
+    {
+        $error = $this->failure(
+            ['offer' => 'x', $key => 'y'],
+            new Assert\Collection(['offer' => new Assert\NotBlank(message: 'required')]),
+        );
+
+        self::assertSame([['field' => '_invalid', 'code' => 'unknown_field', 'params' => []]], $error->fields);
+        // The whole point: the fields can be encoded.
+        json_encode($error->fields, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unsafeFieldNames(): iterable
+    {
+        yield 'invalid utf-8 byte' => ["\xFF"];
+        yield 'truncated multibyte sequence' => ["caf\xC3"];
+        yield 'control character' => ["a\x00b"];
+        yield 'newline' => ["a\nb"];
+        yield 'very long' => [str_repeat('a', 101)];
+    }
+
+    public function test_readable_unicode_field_names_are_kept(): void
+    {
+        $error = $this->failure(
+            ['offer' => 'x', 'Лото🎰' => 'y'],
+            new Assert\Collection(['offer' => new Assert\NotBlank(message: 'required')]),
+        );
+
+        self::assertSame([['field' => 'Лото🎰', 'code' => 'unknown_field', 'params' => []]], $error->fields);
     }
 
     public function test_nested_paths_are_dotted(): void
