@@ -11,12 +11,17 @@ use RuntimeException;
 use SensitiveParameter;
 
 /**
- * The users table. Rows become User objects; nothing here renders JSON, so password_hash can
- * only reach a response if an action copies it there on purpose.
+ * The users table. Rows become User objects.
+ *
+ * Only findByUsername() reads password_hash, because AuthService needs it to check a login; every
+ * other query selects NULL in its place, so users kept around (the request actor, lists) carry no hash.
  */
 final class UserRepository
 {
-    private const COLUMNS = 'id, username, display_name, role, locale, password_hash';
+    /** Every column a User needs, with the hash left out. */
+    private const COLUMNS = 'id, username, display_name, role, locale, NULL AS password_hash';
+
+    private const COLUMNS_WITH_HASH = 'id, username, display_name, role, locale, password_hash';
 
     public function __construct(
         private readonly Database $database,
@@ -28,9 +33,13 @@ final class UserRepository
         return $this->findOne('SELECT ' . self::COLUMNS . ' FROM users WHERE id = ?', [$id]);
     }
 
+    /**
+     * The one lookup that loads the password hash, for checking a login. Do not keep the result:
+     * pass on User::withoutPasswordHash().
+     */
     public function findByUsername(string $username): ?User
     {
-        return $this->findOne('SELECT ' . self::COLUMNS . ' FROM users WHERE username = ?', [$username]);
+        return $this->findOne('SELECT ' . self::COLUMNS_WITH_HASH . ' FROM users WHERE username = ?', [$username]);
     }
 
     /**
@@ -79,6 +88,7 @@ final class UserRepository
 
     /**
      * Builds a User from a row holding at least the COLUMNS (other columns are ignored).
+     * The hash is whatever the row's password_hash is: select NULL there unless it is needed.
      */
     public static function hydrate(mixed $row): User
     {

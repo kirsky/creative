@@ -82,7 +82,8 @@ final class SessionService
 
         $hash = self::hash($token);
         $statement = $this->database->pdo()->prepare(
-            'SELECT s.csrf_token, s.last_seen_at, u.id, u.username, u.display_name, u.role, u.locale, u.password_hash
+            // The user becomes the request actor: the hash is not selected (NULL), so it cannot travel with it.
+            'SELECT s.csrf_token, s.last_seen_at, u.id, u.username, u.display_name, u.role, u.locale, NULL AS password_hash
              FROM sessions s JOIN users u ON u.id = s.user_id
              WHERE s.token_hash = ?',
         );

@@ -143,7 +143,8 @@ abstract class ApiTestCase extends DatabaseTestCase
 
     /**
      * Creates a user. Without $password the account has no password hash, like a seeded account.
-     * Passwords given here are test-only and must never appear outside backend/tests.
+     * Passwords given here are test-only and must never appear outside backend/tests. The User
+     * returned carries no hash (as from findById); findByUsername() is the lookup that loads it.
      */
     protected function createUser(string $username = 'anna', Role $role = Role::Buyer, ?string $password = null, string $locale = 'en'): User
     {

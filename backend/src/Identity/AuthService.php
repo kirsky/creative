@@ -11,7 +11,8 @@ use SensitiveParameter;
 /**
  * Checks credentials. Every way of failing (no such user, wrong password, an account without a
  * password hash) gives the same 401 invalid_credentials and costs one argon2id verification, so
- * neither the response nor its timing tells which accounts exist or can log in.
+ * neither the response nor its timing tells which accounts exist or can log in. The User returned
+ * carries no password hash.
  */
 final class AuthService
 {
@@ -42,6 +43,7 @@ final class AuthService
         // No username from the request and nothing secret: who logged in, and from where.
         $this->logger->info('Login succeeded.', ['user_id' => $user->id, 'client_ip' => $ip]);
 
-        return $user;
+        // The hash has done its job; nothing downstream gets it.
+        return $user->withoutPasswordHash();
     }
 }

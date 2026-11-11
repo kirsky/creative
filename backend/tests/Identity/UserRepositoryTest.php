@@ -42,9 +42,11 @@ final class UserRepositoryTest extends ApiTestCase
         $users->setPasswordHash($user->id, '$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHQ$aGFzaA');
         $users->setLocale($user->id, 'ru');
 
-        $reloaded = $users->findById($user->id);
+        $reloaded = $users->findByUsername('anna');
         self::assertSame('$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHQ$aGFzaA', $reloaded?->passwordHash);
         self::assertSame('ru', $reloaded->locale);
+        // Every other lookup leaves the hash out.
+        self::assertNull($users->findById($user->id)?->passwordHash);
     }
 
     public function test_the_hash_is_not_in_debug_output(): void
@@ -53,7 +55,9 @@ final class UserRepositoryTest extends ApiTestCase
         $user = $users->create('anna', 'Anna', Role::Buyer, 'en');
         $users->setPasswordHash($user->id, '$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHQ$aGFzaA');
 
-        $dump = print_r($users->findById($user->id), true);
+        $loaded = $users->findByUsername('anna');
+        self::assertNotNull($loaded?->passwordHash);
+        $dump = print_r($loaded, true);
 
         self::assertStringNotContainsString('aGFzaA', $dump);
         self::assertStringContainsString('anna', $dump);

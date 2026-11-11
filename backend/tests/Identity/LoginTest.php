@@ -6,6 +6,7 @@ namespace App\Tests\Identity;
 
 use App\Identity\AuthService;
 use App\Identity\Role;
+use App\Identity\UserRepository;
 use App\Shared\Http\ApiError;
 use App\Tests\Support\ApiTestCase;
 use Monolog\LogRecord;
@@ -93,7 +94,8 @@ final class LoginTest extends ApiTestCase
         self::assertSame('bob', $body['user']['username']);
 
         // Neither the password nor its hash leaves the server, in the response or in the log.
-        $hash = (string) $user->passwordHash;
+        $hash = (string) $this->service(UserRepository::class)->findByUsername('bob')?->passwordHash;
+        self::assertStringStartsWith('$argon2id$', $hash);
         self::assertStringNotContainsString($hash, (string) $response->getBody());
         self::assertStringNotContainsString('argon2', (string) $response->getBody());
         foreach ($this->logs->getRecords() as $record) {
