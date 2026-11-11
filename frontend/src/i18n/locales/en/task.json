@@ -223,6 +223,13 @@
       "confirm": "Approve",
       "success": "Task approved."
     },
+    "editBrief": {
+      "open": "Edit brief",
+      "title": "Edit brief",
+      "referencesNote": "References cannot be changed after the task is created.",
+      "save": "Save changes",
+      "success": "Brief updated."
+    },
     "cancelDialog": {
       "title": "Cancel this task?",
       "message": "The task will be cancelled and taken off the board. This cannot be undone.",

@@ -102,6 +102,17 @@ export function useReplaceAiUsage(taskId) {
 }
 
 /**
+ * The creating buyer edits the brief (PATCH /api/tasks/{id}); the body names only the fields that
+ * changed. The history follows the task's key, so an open history shows the new brief_edited line.
+ * @param {number} taskId
+ */
+export function useEditBrief(taskId) {
+  return useTaskMutation(taskId, (/** @type {import('./editBrief').BriefChanges} */ body) =>
+    apiFetch(`/api/tasks/${taskId}`, { method: 'PATCH', body }),
+  );
+}
+
+/**
  * Accepts the work (POST /api/tasks/{id}/approve).
  * @param {number} taskId
  */

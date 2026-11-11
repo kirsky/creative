@@ -6,10 +6,11 @@ import { usePickUpAction } from '../../board/usePickUpAction';
 import './ActionBar.scss';
 import { AiUsageDialog } from './AiUsageDialog';
 import { ApproveDialog, CancelDialog, ReleaseDialog } from './ConfirmActions';
+import { EditBriefDialog } from './EditBriefDialog';
 import { RevisionsDialog } from './RevisionsDialog';
 import { SubmitDialog } from './SubmitDialog';
 
-/** @typedef {'submit' | 'aiUsage' | 'approve' | 'revisions' | 'release' | 'cancel'} DialogName */
+/** @typedef {'submit' | 'aiUsage' | 'approve' | 'revisions' | 'release' | 'editBrief' | 'cancel'} DialogName */
 
 /**
  * The round whose AI usage the signed-in user may still correct: the latest one, if the buyer has
@@ -35,7 +36,7 @@ export function editableRound(task, userId) {
 /**
  * The buttons at the end of the main column. They show exactly what the API says the user may do
  * (`allowedActions`), plus the AI-usage rule above; the server enforces everything, this only hides
- * what is impossible. A user with nothing to do sees nothing. Editing the brief has no screen yet.
+ * what is impossible. A user with nothing to do sees nothing.
  * @param {{task: import('../api').TaskDetail}} props
  */
 export function ActionBar({ task }) {
@@ -77,6 +78,7 @@ export function ActionBar({ task }) {
     can('approve') ||
     can('request_revisions') ||
     can('release') ||
+    can('edit_brief') ||
     can('cancel');
   if (!hasButtons) {
     return null;
@@ -121,6 +123,11 @@ export function ActionBar({ task }) {
             {t('actions.release')}
           </Button>
         )}
+        {can('edit_brief') && (
+          <Button variant="default" onClick={(event) => open('editBrief', event)}>
+            {t('actions.editBrief.open')}
+          </Button>
+        )}
         {can('cancel') && (
           <Button
             className="action-bar__danger"
@@ -144,6 +151,7 @@ export function ActionBar({ task }) {
       {dialog === 'approve' && <ApproveDialog taskId={task.id} onClose={close} />}
       {dialog === 'revisions' && <RevisionsDialog taskId={task.id} onClose={close} />}
       {dialog === 'release' && <ReleaseDialog taskId={task.id} onClose={close} />}
+      {dialog === 'editBrief' && <EditBriefDialog task={task} onClose={close} />}
       {dialog === 'cancel' && <CancelDialog taskId={task.id} onClose={close} />}
     </>
   );

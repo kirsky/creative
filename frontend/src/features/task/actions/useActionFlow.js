@@ -9,7 +9,13 @@ import { IN_FLIGHT } from './api';
  * The answers that mean the task is not what the user saw: the dialog has nothing left to do.
  * The screen refetches the task and shows the real state.
  */
-const STALE_CODES = new Set(['invalid_transition', 'already_taken', 'forbidden', 'not_found']);
+const STALE_CODES = new Set([
+  'invalid_transition',
+  'already_taken',
+  'task_not_editable',
+  'forbidden',
+  'not_found',
+]);
 
 /**
  * What every action dialog does with the answer of its request.

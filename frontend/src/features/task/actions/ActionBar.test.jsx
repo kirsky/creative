@@ -71,20 +71,19 @@ const DECIDED_ROUND = makeRound({
 });
 
 describe('which buttons are shown', () => {
-  it('shows a buyer of a task under review Approve, Request revisions and Cancel task', async () => {
+  it('shows a buyer of a task under review Approve, Request revisions, Edit brief and Cancel task', async () => {
     renderTask({
       status: 'under_review',
       assignee: ANNA,
       rounds: [OPEN_ROUND],
       allowedActions: ['approve', 'request_revisions', 'cancel', 'edit_brief'],
     });
-    expect(await names()).toEqual(['Approve', 'Request revisions', 'Cancel task']);
-    expect(screen.queryByRole('button', { name: /edit brief/i })).not.toBeInTheDocument();
+    expect(await names()).toEqual(['Approve', 'Request revisions', 'Edit brief', 'Cancel task']);
   });
 
-  it('shows a buyer of a new task Cancel task only', async () => {
+  it('shows a buyer of a new task Edit brief and Cancel task', async () => {
     renderTask({ status: 'new', allowedActions: ['cancel', 'edit_brief'] });
-    expect(await names()).toEqual(['Cancel task']);
+    expect(await names()).toEqual(['Edit brief', 'Cancel task']);
   });
 
   it('shows the assigned designer of a task in progress Submit work and Release task', async () => {
@@ -160,7 +159,7 @@ describe('which buttons are shown', () => {
         status: 'revisions_required',
         assignee: ANNA,
         rounds: [DECIDED_ROUND],
-        allowedActions: ['release', 'submit', 'report_ai_usage', 'edit_brief'],
+        allowedActions: ['release', 'submit', 'report_ai_usage'],
       },
       { me: DESIGNER() },
     );
