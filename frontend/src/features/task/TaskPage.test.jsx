@@ -269,6 +269,97 @@ describe('side panel', () => {
   });
 });
 
+describe('Facts groups', () => {
+  /** @param {string} name */
+  async function group(name) {
+    const panel = await region('Facts');
+    return within(panel).getByRole('group', { name });
+  }
+
+  it('has People, Schedule and Time groups', async () => {
+    renderTask(REVIEW_TASK);
+    expect(await group('People')).toBeInTheDocument();
+    expect(await group('Schedule')).toBeInTheDocument();
+    expect(await group('Time')).toBeInTheDocument();
+  });
+
+  it('names the creator and the assignee with a decorative avatar each', async () => {
+    renderTask(REVIEW_TASK);
+    const people = await group('People');
+    expect(
+      within(people).getByText('Created by', { selector: 'dt' }).nextElementSibling,
+    ).toHaveTextContent('Dmitry P.');
+    expect(within(people).getByText('Anna K.')).toBeInTheDocument();
+    const avatars = people.querySelectorAll('.task-side__avatar[aria-hidden="true"]');
+    expect(avatars).toHaveLength(2);
+  });
+
+  it('shows Unassigned without an avatar for an empty assignee', async () => {
+    renderTask({ assignee: null, status: 'new' });
+    const people = await group('People');
+    expect(within(people).getByText('Unassigned')).toBeInTheDocument();
+    expect(people.querySelectorAll('.task-side__avatar')).toHaveLength(1);
+  });
+
+  it('keeps the deadline in the Schedule group and marks an overdue one', async () => {
+    renderTask({ isOverdue: true, deadlineAt: '2020-01-01T00:00:00Z' });
+    const schedule = await group('Schedule');
+    const deadline = within(schedule).getByText('Deadline', { selector: 'dt' }).nextElementSibling;
+    expect(deadline).toHaveAttribute('data-overdue', 'true');
+  });
+
+  it('does not mark a deadline that lies ahead', async () => {
+    renderTask(REVIEW_TASK);
+    const schedule = await group('Schedule');
+    const deadline = within(schedule).getByText('Deadline', { selector: 'dt' }).nextElementSibling;
+    expect(deadline).not.toHaveAttribute('data-overdue');
+  });
+
+  it('puts the four durations in tiles and the credits in a tile of their own', async () => {
+    renderTask(REVIEW_TASK);
+    const time = await group('Time');
+    const tiles = time.querySelectorAll('.task-side__tile');
+    expect(tiles).toHaveLength(4);
+    expect(within(time).getByTestId('facts-credits')).toHaveTextContent('220.00');
+  });
+
+  it('shows a dash for a cycle not started and "< 1 m" for zeros, never blank or NaN', async () => {
+    renderTask({
+      metrics: {
+        queueWaitSeconds: 0,
+        cycleSeconds: null,
+        reviewSeconds: 0,
+        revisionTurnaroundSeconds: 0,
+      },
+    });
+    const time = await group('Time');
+    const values = [...time.querySelectorAll('.task-side__tile dd')].map((dd) => dd.textContent);
+    expect(values).toEqual(['< 1 m', '—', '< 1 m', '< 1 m']);
+    expect(time).not.toHaveTextContent('NaN');
+  });
+
+  it('shows no previous-assignees heading when nobody held the task before', async () => {
+    renderTask({
+      assignee: ANNA,
+      assignments: [
+        { designer: ANNA, assignedAt: '2026-11-09T13:00:00.000Z', endedAt: null, endedHow: null },
+      ],
+    });
+    await region('Facts');
+    expect(screen.queryByText('Previous assignees')).not.toBeInTheDocument();
+  });
+
+  it('words the group headings in Russian', async () => {
+    renderTask(REVIEW_TASK);
+    await region('Facts');
+    await act(() => i18n.changeLanguage('ru'));
+    const panel = await region('Факты');
+    expect(within(panel).getByRole('group', { name: 'Люди' })).toBeInTheDocument();
+    expect(within(panel).getByRole('group', { name: 'Сроки' })).toBeInTheDocument();
+    expect(within(panel).getByRole('group', { name: 'Время' })).toBeInTheDocument();
+  });
+});
+
 describe('brief', () => {
   it('shows the description as text with its line breaks', async () => {
     renderTask({ description: 'Line one\nLine two' });

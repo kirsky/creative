@@ -81,6 +81,8 @@ function schemeVariables(surface) {
     '--app-surface': surface.card,
     '--app-card-shadow': surface.shadow,
     '--app-brand-gradient': `linear-gradient(135deg, ${BRAND_GRADIENT.from}, ${BRAND_GRADIENT.to})`,
+    // Text on the brand gradient: white, which the gradient stops are chosen to hold 4.5:1 against.
+    '--app-on-brand': '#ffffff',
     '--app-text': surface.text,
     '--app-text-muted': surface.muted,
     '--app-border': surface.border,

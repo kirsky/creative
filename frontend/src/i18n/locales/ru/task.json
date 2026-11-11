@@ -62,6 +62,11 @@
     }
   },
   "side": {
+    "groups": {
+      "people": "Люди",
+      "schedule": "Сроки",
+      "time": "Время"
+    },
     "title": "Факты",
     "stage": "Этап",
     "createdBy": "Создатель",

@@ -1,4 +1,6 @@
+import { FileArrowDown } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../components/Icon';
 import { formatFileSize } from '../../i18n/format';
 
 /** @typedef {import('../../i18n/detect').Language} Language */
@@ -24,6 +26,7 @@ export function FileList({ files }) {
       {files.map((file) => (
         <li key={file.id} className="file-list__item">
           <a className="file-list__link" href={fileHref(file.id)} download>
+            <Icon icon={FileArrowDown} size={16} />
             {file.name}
           </a>{' '}
           <span className="file-list__size">{formatFileSize(file.size, lng, t)}</span>

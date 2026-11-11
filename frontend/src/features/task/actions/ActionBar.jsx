@@ -1,6 +1,17 @@
 import { Button } from '@mantine/core';
+import {
+  ArrowCounterClockwise,
+  ArrowUUpLeft,
+  CheckCircle,
+  Coins,
+  HandGrabbing,
+  PaperPlaneTilt,
+  PencilSimple,
+  Prohibit,
+} from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../../components/Icon';
 import { useAuth } from '../../auth/useAuth';
 import { usePickUpAction } from '../../board/usePickUpAction';
 import './ActionBar.scss';
@@ -89,6 +100,8 @@ export function ActionBar({ task }) {
       <div className="action-bar" role="group" aria-label={t('actions.label')}>
         {can('pick_up') && (
           <Button
+            variant="gradient"
+            leftSection={<Icon icon={HandGrabbing} />}
             loading={pendingId === task.id}
             disabled={pendingId !== null}
             onClick={() => void pickUp(task)}
@@ -97,11 +110,18 @@ export function ActionBar({ task }) {
           </Button>
         )}
         {can('submit') && (
-          <Button onClick={(event) => open('submit', event)}>{t('actions.submit')}</Button>
+          <Button
+            variant="gradient"
+            leftSection={<Icon icon={PaperPlaneTilt} />}
+            onClick={(event) => open('submit', event)}
+          >
+            {t('actions.submit')}
+          </Button>
         )}
         {round !== null && (
           <Button
             variant="default"
+            leftSection={<Icon icon={Coins} />}
             onClick={(event) => {
               setEditing(round);
               open('aiUsage', event);
@@ -111,20 +131,38 @@ export function ActionBar({ task }) {
           </Button>
         )}
         {can('approve') && (
-          <Button onClick={(event) => open('approve', event)}>{t('actions.approve')}</Button>
+          <Button
+            variant="gradient"
+            leftSection={<Icon icon={CheckCircle} />}
+            onClick={(event) => open('approve', event)}
+          >
+            {t('actions.approve')}
+          </Button>
         )}
         {can('request_revisions') && (
-          <Button variant="default" onClick={(event) => open('revisions', event)}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon={ArrowUUpLeft} />}
+            onClick={(event) => open('revisions', event)}
+          >
             {t('actions.requestRevisions')}
           </Button>
         )}
         {can('release') && (
-          <Button variant="default" onClick={(event) => open('release', event)}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon={ArrowCounterClockwise} />}
+            onClick={(event) => open('release', event)}
+          >
             {t('actions.release')}
           </Button>
         )}
         {can('edit_brief') && (
-          <Button variant="default" onClick={(event) => open('editBrief', event)}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon={PencilSimple} />}
+            onClick={(event) => open('editBrief', event)}
+          >
             {t('actions.editBrief.open')}
           </Button>
         )}
@@ -133,6 +171,7 @@ export function ActionBar({ task }) {
             className="action-bar__danger"
             color="red"
             variant="outline"
+            leftSection={<Icon icon={Prohibit} />}
             onClick={(event) => open('cancel', event)}
           >
             {t('actions.cancelTask')}

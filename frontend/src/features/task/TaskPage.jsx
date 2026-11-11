@@ -1,7 +1,9 @@
 import { Alert, Anchor, Button, Skeleton, Title, VisuallyHidden } from '@mantine/core';
+import { ArrowLeft, CalendarBlank } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { ApiRequestError } from '../../api/ApiRequestError';
+import { Icon } from '../../components/Icon';
 import { translateApiError } from '../../i18n/errors';
 import { formatCountry, formatDeadline, formatDateTime, formatDuration } from '../../i18n/format';
 import { useAuth } from '../auth/useAuth';
@@ -26,6 +28,7 @@ function BackLink() {
   const isDesigner = user?.role === 'designer';
   return (
     <Anchor component={Link} to={isDesigner ? '/my-work' : '/board'} className="task-page__back">
+      <Icon icon={ArrowLeft} size={16} />
       {isDesigner ? t('page.backToMyWork') : t('page.backToBoard')}
     </Anchor>
   );
@@ -84,6 +87,7 @@ function Deadline({ task }) {
       data-overdue={task.isOverdue ? 'true' : undefined}
       title={formatDateTime(task.deadlineAt, lng)}
     >
+      <Icon icon={CalendarBlank} size={14} />
       {task.isOverdue
         ? t('task:page.overdue', { duration: formatDuration(secondsLate(task.deadlineAt), t) })
         : t('task:page.due', { date: formatDeadline(task.deadlineAt, lng) })}

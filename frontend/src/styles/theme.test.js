@@ -35,6 +35,7 @@ const APP_VARIABLES = [
   '--app-column-bg',
   '--app-card-shadow',
   '--app-brand-gradient',
+  '--app-on-brand',
   '--app-text',
   '--app-text-muted',
   '--app-border',
