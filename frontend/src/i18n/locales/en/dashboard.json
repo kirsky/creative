@@ -1,3 +1,87 @@
 {
-  "title": "Dashboard"
+  "title": "Team overview",
+  "loading": "Loading the dashboard",
+  "noData": "No data",
+  "period": {
+    "label": "Period",
+    "7d": "7 days",
+    "30d": "30 days",
+    "all": "All time"
+  },
+  "error": {
+    "title": "Could not load the dashboard"
+  },
+  "tiles": {
+    "label": "Key figures",
+    "total": {
+      "label": "Total tasks",
+      "cancelled_one": "{{count}} cancelled",
+      "cancelled_other": "{{count}} cancelled"
+    },
+    "active": {
+      "label": "Active",
+      "hint": "in progress, review, revisions"
+    },
+    "overdue": {
+      "label": "Overdue",
+      "hint": "see list below",
+      "none": "all on time"
+    },
+    "cycle": {
+      "label": "Average completion (cycle) time",
+      "completed_one": "{{count}} completed task",
+      "completed_other": "{{count}} completed tasks"
+    },
+    "ai": {
+      "label": "AI credits used",
+      "providers_one": "{{count}} provider",
+      "providers_other": "{{count}} providers"
+    }
+  },
+  "status": {
+    "title": "Tasks by status",
+    "caption": "Number of tasks in each status",
+    "status": "Status",
+    "tasks": "Tasks",
+    "cancelledNote_one": "+{{count}} cancelled",
+    "cancelledNote_other": "+{{count}} cancelled"
+  },
+  "time": {
+    "title": "Where time goes (averages)",
+    "queueWait": "Queue wait",
+    "cycle": "Cycle time (pickup → approval)",
+    "review": "Review time per round",
+    "revision": "Revision turnaround",
+    "note": "Elapsed time, not hours worked."
+  },
+  "workload": {
+    "title": "Designer workload",
+    "designer": "Designer",
+    "inProgress": "In progress",
+    "revisions": "Revisions",
+    "inReview": "In review",
+    "overdue": "Overdue",
+    "hint": "Click a designer to list their tasks."
+  },
+  "overdue": {
+    "title": "Overdue tasks",
+    "unassigned": "Unassigned",
+    "late": "{{duration}} late",
+    "showing": "Showing {{shown}} of {{total}}"
+  },
+  "ai": {
+    "credits": "Credits",
+    "total": "Total",
+    "designer": "Designer",
+    "provider": "Provider",
+    "byProvider": {
+      "title": "AI credits by provider",
+      "caption": "Credits used per AI provider"
+    },
+    "byDesigner": {
+      "title": "AI credits by designer",
+      "caption": "Credits used per designer and AI provider",
+      "hint": "Hover a segment for the provider and credits."
+    }
+  }
 }

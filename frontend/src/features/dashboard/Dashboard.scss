@@ -1,0 +1,241 @@
+// The manager dashboard. Colours come from Mantine's scheme-aware variables, so light and dark
+// both work.
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-sm);
+  }
+
+  &__error-text {
+    margin: 0 0 var(--mantine-spacing-sm);
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-md);
+  }
+
+  // Two blocks side by side on a wide screen, stacked on a narrow one.
+  &__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+    gap: var(--mantine-spacing-sm);
+  }
+
+  // Numbers that were refreshed a moment ago are shown dimmed until the new ones arrive.
+  &[data-refreshing='true'] > :not(.dashboard__header) {
+    opacity: 0.6;
+    transition: opacity 150ms;
+  }
+}
+
+.stat-tiles {
+  margin: 0;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+
+  // Overdue work is the one figure that asks for action.
+  &[data-danger='true'] {
+    border-color: var(--mantine-color-red-filled);
+    background-color: var(--mantine-color-red-light);
+  }
+
+  &__label,
+  &__hint {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+
+  &__value {
+    margin: 0;
+    font-size: var(--mantine-h2-font-size);
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  &[data-danger='true'] &__value {
+    color: var(--mantine-color-red-light-color);
+  }
+}
+
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+
+  &[data-danger='true'] {
+    border-color: var(--mantine-color-red-filled);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--mantine-font-size-lg);
+    font-weight: 600;
+  }
+
+  &__note,
+  &__empty {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+
+  // A table wider than the screen scrolls on its own instead of widening the page.
+  &__scroll {
+    overflow-x: auto;
+  }
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.375rem var(--mantine-spacing-xs);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+  }
+
+  &__number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &[data-danger='true'] {
+      color: var(--mantine-color-red-light-color);
+      font-weight: 700;
+    }
+  }
+
+  &__row--link {
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--mantine-color-default-hover);
+    }
+  }
+}
+
+.overdue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--mantine-spacing-xs);
+
+    // The parts are separated by a dot that is only decoration.
+    > :not(:first-child)::before {
+      content: '· ';
+      color: var(--app-text-muted);
+    }
+  }
+
+  &__offer {
+    font-weight: 600;
+  }
+
+  &__late {
+    color: var(--mantine-color-red-light-color);
+    font-weight: 600;
+  }
+}
+
+.status-bar,
+.ai-chart {
+  min-width: 0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem var(--mantine-spacing-sm);
+  margin: 0;
+  padding: 0;
+  font-size: var(--mantine-font-size-sm);
+  list-style: none;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+}
+
+.chart-swatch {
+  display: inline-block;
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+}
+
+.chart-tooltip {
+  padding: var(--mantine-spacing-xs);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background-color: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
+  font-size: var(--mantine-font-size-sm);
+
+  &__title {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+  }
+
+  &__rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  &__value {
+    margin-left: auto;
+    padding-left: var(--mantine-spacing-sm);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+}

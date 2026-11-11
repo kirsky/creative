@@ -4,6 +4,7 @@ import { AppProviders } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { setCsrfToken } from '../../api/client';
 import { EMPTY_BOARD_TABLE } from '../../test/board';
+import { dashboardPath, makeDashboard } from '../../test/dashboard';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
 import { TASK_PAGE_HEADING, TASK_PAGE_TABLE } from '../../test/taskDetail';
 
@@ -15,6 +16,7 @@ function renderAt(path, me) {
   installFetch({
     ...EMPTY_BOARD_TABLE,
     ...TASK_PAGE_TABLE,
+    [`GET ${dashboardPath('all')}`]: mockResponse(200, makeDashboard()),
     'GET /api/auth/me': me ? mockResponse(200, me) : errorResponse(401, 'unauthenticated'),
   });
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -77,13 +79,17 @@ describe('RoleRoute', () => {
 
   it('sends a manager away from /tasks/new', async () => {
     const router = renderAt('/tasks/new', makeMe({ role: 'manager' }));
-    await screen.findByTestId('coming-soon');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Team overview' }),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/dashboard');
   });
 
   it('lets the matching role in', async () => {
     renderAt('/dashboard', makeMe({ role: 'manager' }));
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Dashboard');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Team overview' }),
+    ).toBeInTheDocument();
   });
 
   it('lets every role open the board and a task page', async () => {

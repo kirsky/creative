@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter } from 'react-router';
 import { apiFetch, setCsrfToken } from '../api/client';
 import { EMPTY_BOARD_TABLE } from '../test/board';
+import { dashboardPath, makeDashboard } from '../test/dashboard';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../test/http';
 import { TASK_PAGE_HEADING, TASK_PAGE_TABLE } from '../test/taskDetail';
 import { App } from './App';
@@ -13,6 +14,7 @@ function renderApp(path, me) {
   const fetchMock = installFetch({
     ...EMPTY_BOARD_TABLE,
     ...TASK_PAGE_TABLE,
+    [`GET ${dashboardPath('all')}`]: mockResponse(200, makeDashboard()),
     'GET /api/auth/me': mockResponse(200, me),
     'POST /api/auth/logout': mockResponse(204),
     'PATCH /api/me/locale': mockResponse(200, me),
