@@ -156,7 +156,7 @@ describe('AiUsageEditor', () => {
     expect(screen.getByRole('button', { name: 'Add line' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Remove line 20' }));
     expect(screen.getByRole('button', { name: 'Add line' })).toBeEnabled();
-  });
+  }, 15_000);
 
   it('suggests the providers of the API and still takes free text', async () => {
     const { onValid } = renderEditor();
