@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { NotFound } from '../components/NotFound';
 import { PageLoader } from '../components/PageLoader';
+import { RouteError } from '../components/RouteError';
 import { AuthGuard } from '../features/auth/AuthGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
@@ -21,43 +22,51 @@ const DashboardPage = lazy(() =>
 
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <RouteError /> },
   {
     element: <AuthGuard />,
+    // Last resort, without the header: the layout itself failed.
+    errorElement: <RouteError />,
     children: [
       {
         element: <AppLayout />,
         children: [
-          { path: '/', element: <RoleHome /> },
-          { path: '/board', element: <BoardPage /> },
           {
-            path: '/tasks/new',
-            element: (
-              <RoleRoute roles={['buyer']}>
-                <CreateTaskPage />
-              </RoleRoute>
-            ),
+            // A failing page is replaced by the message; the header and navigation stay.
+            errorElement: <RouteError />,
+            children: [
+              { path: '/', element: <RoleHome /> },
+              { path: '/board', element: <BoardPage /> },
+              {
+                path: '/tasks/new',
+                element: (
+                  <RoleRoute roles={['buyer']}>
+                    <CreateTaskPage />
+                  </RoleRoute>
+                ),
+              },
+              { path: '/tasks/:id', element: <TaskPage /> },
+              {
+                path: '/my-work',
+                element: (
+                  <RoleRoute roles={['designer']}>
+                    <MyWorkPage />
+                  </RoleRoute>
+                ),
+              },
+              {
+                path: '/dashboard',
+                element: (
+                  <RoleRoute roles={['manager']}>
+                    <Suspense fallback={<PageLoader />}>
+                      <DashboardPage />
+                    </Suspense>
+                  </RoleRoute>
+                ),
+              },
+              { path: '*', element: <NotFound /> },
+            ],
           },
-          { path: '/tasks/:id', element: <TaskPage /> },
-          {
-            path: '/my-work',
-            element: (
-              <RoleRoute roles={['designer']}>
-                <MyWorkPage />
-              </RoleRoute>
-            ),
-          },
-          {
-            path: '/dashboard',
-            element: (
-              <RoleRoute roles={['manager']}>
-                <Suspense fallback={<PageLoader />}>
-                  <DashboardPage />
-                </Suspense>
-              </RoleRoute>
-            ),
-          },
-          { path: '*', element: <NotFound /> },
         ],
       },
     ],

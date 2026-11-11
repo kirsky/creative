@@ -42,5 +42,10 @@
     "bytes": "{{value}} B",
     "kb": "{{value}} KB",
     "mb": "{{value}} MB"
+  },
+  "routeError": {
+    "title": "Something went wrong",
+    "text": "The page could not be shown. This can happen after the app has been updated. Reload the page to try again.",
+    "reload": "Reload page"
   }
 }
