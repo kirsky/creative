@@ -25,7 +25,11 @@ const BENIGN_CONSOLE_ERRORS = [];
  * @typedef {object} Screen
  * @property {string} name
  * @property {(page: Page) => Promise<void>} open navigates and waits until the screen is ready
+ * @property {string} [overdue] the overdue emphasis on this screen of the demo data (one match at
+ *   least), which must stay red and readable in both schemes
  */
+
+const OVERDUE_CARD = '.task-card__deadline[data-overdue="true"]';
 
 /** @param {Page} page */
 async function noSkeletons(page) {
@@ -39,6 +43,7 @@ const ROLES = {
     screens: [
       {
         name: 'board',
+        overdue: OVERDUE_CARD,
         open: async (page) => {
           await page.goto('/board');
           await expect(page.locator('.board-column')).toHaveCount(5);
@@ -70,6 +75,7 @@ const ROLES = {
     screens: [
       {
         name: 'mywork',
+        overdue: OVERDUE_CARD,
         open: async (page) => {
           await page.goto('/my-work');
           await expect(page.locator('[data-section]').first()).toBeVisible();
@@ -78,6 +84,7 @@ const ROLES = {
       },
       {
         name: 'board',
+        overdue: OVERDUE_CARD,
         open: async (page) => {
           await page.goto('/board');
           await expect(page.locator('.board-column')).toHaveCount(5);
@@ -86,8 +93,10 @@ const ROLES = {
       },
       {
         name: 'task',
+        overdue: '.task-page__deadline[data-overdue="true"], .task-side dd[data-overdue="true"]',
         open: async (page) => {
           await page.goto('/my-work');
+          // The demo's in-progress task of Anna's is overdue.
           const mine = page.locator(
             '[data-section="assigned"] .task-card[data-status="in_progress"]',
           );
@@ -103,6 +112,11 @@ const ROLES = {
     screens: [
       {
         name: 'dashboard',
+        overdue: [
+          '.stat-tile[data-danger="true"] .stat-tile__value',
+          '.dashboard-table__number[data-danger="true"]',
+          '.overdue-list__late',
+        ].join(', '),
         open: async (page) => {
           await page.goto('/dashboard');
           await expect(page.locator('.recharts-surface').first()).toBeVisible();
@@ -111,6 +125,7 @@ const ROLES = {
       },
       {
         name: 'board',
+        overdue: OVERDUE_CARD,
         open: async (page) => {
           await page.goto('/board');
           await expect(page.locator('.board-column')).toHaveCount(5);
@@ -167,6 +182,71 @@ async function expectHeaderFits(page, where) {
   expect(problems, `${where}: header`).toEqual([]);
 }
 
+/**
+ * Every element of `selector` is clearly red (red channel well above green and blue) and has a
+ * contrast of at least 4.5:1 against what is behind it (backgrounds composited up to the page).
+ * @param {Page} page
+ * @param {string} selector
+ * @param {string} where
+ */
+async function expectOverdueRed(page, selector, where) {
+  const found = await page.locator(selector).evaluateAll((elements) => {
+    /** @param {string} text @returns {[number, number, number, number]} */
+    const parse = (text) => {
+      const rgb = /^rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)$/.exec(text);
+      if (rgb !== null) {
+        return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), Number(rgb[4] ?? 1)];
+      }
+      const srgb = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)$/.exec(text);
+      if (srgb !== null) {
+        const [, r, g, b, a] = srgb;
+        return [Number(r) * 255, Number(g) * 255, Number(b) * 255, Number(a ?? 1)];
+      }
+      throw new Error(`Unexpected colour "${text}"`);
+    };
+    /** @param {number[]} colour */
+    const luminance = ([r, g, b]) => {
+      const linear = (/** @type {number} */ value) => {
+        const c = value / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    };
+    return elements.map((element) => {
+      // The layers behind the text, innermost first; composited from the page upwards.
+      const layers = [];
+      for (
+        let node = /** @type {Element | null} */ (element);
+        node !== null;
+        node = node.parentElement
+      ) {
+        layers.push(parse(getComputedStyle(node).backgroundColor));
+      }
+      let behind = [255, 255, 255];
+      for (const [r, g, b, a] of layers.reverse()) {
+        behind = [
+          r * a + behind[0] * (1 - a),
+          g * a + behind[1] * (1 - a),
+          b * a + behind[2] * (1 - a),
+        ];
+      }
+      const [r, g, b] = parse(getComputedStyle(element).color);
+      const [lighter, darker] = [luminance([r, g, b]), luminance(behind)].sort((x, y) => y - x);
+      return {
+        text: element.textContent,
+        colour: [r, g, b].map(Math.round),
+        redness: r - Math.max(g, b),
+        contrast: Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100,
+      };
+    });
+  });
+  expect(found.length, `${where}: overdue emphasis`).toBeGreaterThan(0);
+  for (const item of found) {
+    expect(item.redness, `${where}: "${item.text}" ${item.colour} is not red`).toBeGreaterThan(80);
+    expect(item.contrast, `${where}: "${item.text}" ${item.colour}`).toBeGreaterThanOrEqual(4.5);
+  }
+}
+
 /** @param {Page} page */
 async function expectChartsSized(page) {
   const surfaces = page.locator('.recharts-surface');
@@ -214,6 +294,9 @@ for (const [role, { user, screens }] of Object.entries(ROLES)) {
           await checkPage(page, lng);
           await expectNoSidewaysScroll(page, `${screen.name} at 1280`);
           await expectHeaderFits(page, `${screen.name} at 1280`);
+          if (screen.overdue !== undefined) {
+            await expectOverdueRed(page, screen.overdue, `${screen.name} (${scheme})`);
+          }
           if (screen.name === 'dashboard') {
             await expectChartsSized(page);
           }

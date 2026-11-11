@@ -52,31 +52,58 @@ check: ## Run all quality gates
 watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch
 
+# The command whose stdout is the new credentials. Override it ONLY to test the failure paths of
+# `make e2e`, e.g. `make e2e E2E_ROTATE=true` (a rotation that prints nothing).
+E2E_ROTATE = $(EXEC) composer demo:credentials:rotate
+# The Playwright container, by name, so an interrupted run can stop it (the docker CLI does not
+# pass Ctrl-C on to it, and it would go on testing against the data being reset).
+E2E_CONTAINER = creative-e2e
+
 # DESTRUCTIVE, never part of `check`: it resets the demo data and gives every account a new
-# password (any credentials handed to reviewers stop working). The passwords live only in a shell
-# variable and in the environment of the docker CLI (`-e NAME` without a value, so they are not in
-# any process's arguments); nothing writes them to a file. After the run the result files are
-# searched for them, and the data is reset once more.
+# password (any credentials handed to reviewers stop working).
+# - The passwords live only in a shell variable and in the environment of the docker CLI (`-e NAME`
+#   without a value, so they are in no process's arguments; grep reads them from stdin).
+# - What keeps them out of the results is the suite itself: no trace, video or HTML report, a
+#   password field is emptied before any screenshot and when a sign-in fails. The search of
+#   e2e/.results afterwards is a backstop for the plain-text files there (screenshots are images
+#   and cannot be searched); it fails closed: a match, or a file it cannot read, fails the run.
+# - From the first reset on, an EXIT trap always resets the data again and prints the reminder,
+#   also when something fails or the run is interrupted; the exit status stays the failure's.
 e2e: ## DESTRUCTIVE: reset data, rotate all passwords, run Playwright; ARGS="story.spec.js"
 	@test -n "$$($(COMPOSE) ps -q nginx)" || { echo "error: the stack is not running, run make up" >&2; exit 1; }
 	$(NODE) npm run build
-	$(EXEC) php bin/console demo:reset
 	@set -u; \
-	creds="$$($(EXEC) composer demo:credentials:rotate)" && [ -n "$$creds" ] \
-		|| { echo "error: credential rotation failed" >&2; exit 1; }; \
-	status=0; \
-	E2E_CREDENTIALS="$$creds" $(COMPOSE) run --rm -T -e E2E_CREDENTIALS playwright npm run --silent e2e -- $(ARGS) || status=$$?; \
-	if [ -d frontend/e2e/.results ] && printf '%s\n' "$$creds" | cut -f2 | grep -rqFf - frontend/e2e/.results; then \
-		echo "error: a password was found under frontend/e2e/.results; that directory was deleted" >&2; \
-		rm -rf frontend/e2e/.results; status=1; \
+	creds=; status=0; \
+	finish() { \
+		code=$$?; creds=; trap - EXIT INT TERM HUP; \
+		echo; \
+		docker rm -f $(E2E_CONTAINER) >/dev/null 2>&1 || true; \
+		if $(EXEC) php bin/console demo:reset >/dev/null; then echo "e2e: the demo data was reset again."; \
+		else echo "error: the final demo:reset failed" >&2; code=1; fi; \
+		echo "!!! make e2e reset the demo data and may have ROTATED THE PASSWORD OF EVERY ACCOUNT."; \
+		echo "!!! Credentials given to reviewers may no longer work; the new ones were never shown."; \
+		echo "!!! A run that completes sets every account's interface language back to English."; \
+		echo "!!! Before an evaluation: docker compose exec -T php composer demo:credentials:rotate"; \
+		echo "!!! and deliver the new credentials. Never run e2e on a demo that reviewers are using."; \
+		exit $$code; \
+	}; \
+	trap finish EXIT; trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP; \
+	docker rm -f $(E2E_CONTAINER) >/dev/null 2>&1 || true; \
+	$(EXEC) php bin/console demo:reset || exit 1; \
+	creds="$$($(E2E_ROTATE))" || { echo "error: credential rotation failed" >&2; exit 1; }; \
+	[ -n "$$creds" ] || { echo "error: credential rotation printed no credentials" >&2; exit 1; }; \
+	E2E_CREDENTIALS="$$creds" $(COMPOSE) run --rm -T --name $(E2E_CONTAINER) -e E2E_CREDENTIALS playwright npm run --silent e2e -- $(ARGS) || status=$$?; \
+	if [ -d frontend/e2e/.results ]; then \
+		leak=0; \
+		printf '%s\n' "$$creds" | cut -f2 | grep -rqFf - frontend/e2e/.results || leak=$$?; \
+		case $$leak in \
+			0) echo "error: a password was found under frontend/e2e/.results; that directory was deleted" >&2; \
+				rm -rf frontend/e2e/.results; status=1 ;; \
+			1) ;; \
+			*) echo "error: could not search frontend/e2e/.results for the passwords (grep exit $$leak)" >&2; \
+				status=1 ;; \
+		esac; \
 	fi; \
-	creds=; \
-	$(EXEC) php bin/console demo:reset >/dev/null || status=1; \
-	echo; \
-	echo "!!! make e2e ROTATED THE PASSWORD OF EVERY ACCOUNT and reset the demo data."; \
-	echo "!!! Credentials given to reviewers no longer work, and the new ones were never shown."; \
-	echo "!!! Before an evaluation: docker compose exec -T php composer demo:credentials:rotate"; \
-	echo "!!! and deliver the new credentials. Never run e2e on a demo that reviewers are using."; \
 	exit $$status
 
 demo-reset: ## Replace all task data with the demo scenario (keeps users and sessions)
