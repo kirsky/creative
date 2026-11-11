@@ -107,6 +107,7 @@
     "revisions_requested": "{{actor}} requested revisions on round {{round}}",
     "revisions_requested_reason": "{{actor}} requested revisions on round {{round}}: {{reason}}",
     "task_approved": "{{actor}} approved round {{round}}",
+    "task_approved_note": "{{actor}} approved round {{round}}: {{note}}",
     "task_cancelled": "{{actor}} cancelled the task",
     "task_cancelled_reason": "{{actor}} cancelled the task: {{reason}}",
     "brief_edited": "{{actor}} edited the brief",

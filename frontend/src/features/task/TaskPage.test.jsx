@@ -193,6 +193,64 @@ describe('side panel', () => {
     expect(screen.queryByRole('list', { name: 'Previous assignees' })).not.toBeInTheDocument();
   });
 
+  it('shows a previous assignee without a dangling dash when the ending is unknown', async () => {
+    renderTask({
+      status: 'in_progress',
+      assignee: ANNA,
+      assignments: [
+        {
+          designer: IGOR,
+          assignedAt: '2026-11-09T08:00:00.000Z',
+          endedAt: '2026-11-09T12:00:00.000Z',
+          endedHow: null,
+        },
+        { designer: ANNA, assignedAt: '2026-11-09T13:00:00.000Z', endedAt: null, endedHow: null },
+      ],
+    });
+    const panel = await region('Facts');
+    const items = within(
+      within(panel).getByRole('list', { name: 'Previous assignees' }),
+    ).getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    expect(items[0].textContent).toMatch(/^Igor S\.\s*Nov 9, 2026/);
+    expect(items[0].textContent).not.toContain('—');
+  });
+
+  it('never lists the current assignee of a task in progress as a previous one', async () => {
+    renderTask({
+      status: 'in_progress',
+      assignee: ANNA,
+      assignments: [
+        {
+          designer: ANNA,
+          assignedAt: '2026-11-09T13:00:00.000Z',
+          endedAt: '2026-11-09T14:00:00.000Z',
+          endedHow: null,
+        },
+      ],
+    });
+    await fact('Created by');
+    expect(screen.queryByRole('list', { name: 'Previous assignees' })).not.toBeInTheDocument();
+  });
+
+  it('still lists a designer who released the task and picked it up again', async () => {
+    renderTask({
+      status: 'in_progress',
+      assignee: ANNA,
+      assignments: [
+        {
+          designer: ANNA,
+          assignedAt: '2026-11-09T08:00:00.000Z',
+          endedAt: '2026-11-09T12:00:00.000Z',
+          endedHow: 'released',
+        },
+        { designer: ANNA, assignedAt: '2026-11-09T13:00:00.000Z', endedAt: null, endedHow: null },
+      ],
+    });
+    const panel = await region('Facts');
+    expect(within(panel).getByText('Anna K. — released')).toBeInTheDocument();
+  });
+
   it('shows who had a completed task and that the work ended with approval', async () => {
     renderTask({
       status: 'completed',

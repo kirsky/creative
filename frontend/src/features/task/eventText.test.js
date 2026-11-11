@@ -56,7 +56,11 @@ describe('renderEvent', () => {
     expect(text('revisions_requested', { round: 1, reason: 'Shorter hook' })).toBe(
       'Anna K. requested revisions on round 1: Shorter hook',
     );
-    expect(text('task_approved', { round: 2, note: 'Great' })).toBe('Anna K. approved round 2');
+    expect(text('task_approved', { round: 2, note: 'Great' })).toBe(
+      'Anna K. approved round 2: Great',
+    );
+    expect(text('task_approved', { round: 2 })).toBe('Anna K. approved round 2');
+    expect(text('task_approved', { round: 2, note: '  ' })).toBe('Anna K. approved round 2');
     expect(text('task_cancelled', { reason: 'Offer paused' })).toBe(
       'Anna K. cancelled the task: Offer paused',
     );
@@ -164,6 +168,13 @@ describe('renderEventDetails', () => {
       'ru',
     );
     expect(lines).toEqual(['ГЕО: Германия → Австрия', 'Приоритет: Низкий → Высокий']);
+  });
+
+  it('includes the approval note in Russian too', () => {
+    const t = i18n.getFixedT('ru');
+    expect(renderEvent(t, makeEvent('task_approved', { round: 2, note: 'Отлично' }), 'ru')).toBe(
+      'Anna K.: принят раунд 2: Отлично',
+    );
   });
 
   it('cuts a long description to 80 characters with an ellipsis', () => {

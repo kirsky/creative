@@ -158,6 +158,7 @@ export function renderEvent(t, event, lng = languageOf(t)) {
   const actor = event.actor?.displayName ?? NONE;
   const round = textOf(payload.round) ?? NONE;
   const reason = textOf(payload.reason);
+  const note = textOf(payload.note);
 
   switch (event.type) {
     case 'task_created':
@@ -174,7 +175,9 @@ export function renderEvent(t, event, lng = languageOf(t)) {
         ? t('task:events.revisions_requested', { actor, round })
         : t('task:events.revisions_requested_reason', { actor, round, reason });
     case 'task_approved':
-      return t('task:events.task_approved', { actor, round });
+      return note === undefined
+        ? t('task:events.task_approved', { actor, round })
+        : t('task:events.task_approved_note', { actor, round, note });
     case 'task_cancelled':
       return reason === undefined
         ? t('task:events.task_cancelled', { actor })

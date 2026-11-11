@@ -7,14 +7,23 @@ import { StatusBadge } from './TaskBadges';
 /** @typedef {import('../../i18n/detect').Language} Language */
 
 /**
- * The people who held the task before, or no longer: every assignment that has ended.
- * @param {{assignments: import('./api').Assignment[]}} props
+ * The people who held the task before, or no longer: every assignment that has ended. The one a
+ * task in progress is held by right now is no earlier assignee, unless that designer released the
+ * task before and took it again. A completed or cancelled task keeps its last assignee here.
+ * @param {{task: import('./api').TaskDetail}} props
  */
-function PreviousAssignees({ assignments }) {
+function PreviousAssignees({ task }) {
   const { t, i18n } = useTranslation('task');
   const lng = /** @type {Language} */ (i18n.language);
   const headingId = useId();
-  const ended = assignments.filter((assignment) => assignment.endedAt !== null);
+  const isFinished = task.status === 'completed' || task.status === 'cancelled';
+  const ended = task.assignments.filter(
+    (assignment) =>
+      assignment.endedAt !== null &&
+      (isFinished ||
+        assignment.designer.id !== task.assignee?.id ||
+        assignment.endedHow === 'released'),
+  );
   if (ended.length === 0) {
     return null;
   }
@@ -26,15 +35,14 @@ function PreviousAssignees({ assignments }) {
       <ul aria-labelledby={headingId} className="task-side__assignment-list">
         {ended.map((assignment) => (
           <li key={`${assignment.designer.id}-${assignment.assignedAt}`}>
-            {t('side.assignment', {
-              name: assignment.designer.displayName,
-              how:
-                assignment.endedHow === null
-                  ? ''
-                  : t(`side.endedHow.${assignment.endedHow}`, {
-                      defaultValue: assignment.endedHow,
-                    }),
-            })}
+            {assignment.endedHow === null
+              ? assignment.designer.displayName
+              : t('side.assignment', {
+                  name: assignment.designer.displayName,
+                  how: t(`side.endedHow.${assignment.endedHow}`, {
+                    defaultValue: assignment.endedHow,
+                  }),
+                })}
             <span className="task-side__period">
               {t('side.assignmentPeriod', {
                 from: formatDateTime(assignment.assignedAt, lng),
@@ -95,7 +103,7 @@ export function SidePanel({ task }) {
         <dd>{formatCredits(task.creditsTotal, lng)}</dd>
       </dl>
       <p className="task-side__note">{t('side.elapsedNote')}</p>
-      <PreviousAssignees assignments={task.assignments} />
+      <PreviousAssignees task={task} />
     </Paper>
   );
 }

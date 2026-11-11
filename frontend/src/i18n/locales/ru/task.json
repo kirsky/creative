@@ -109,6 +109,7 @@
     "revisions_requested": "{{actor}}: запрошены правки по раунду {{round}}",
     "revisions_requested_reason": "{{actor}}: запрошены правки по раунду {{round}}: {{reason}}",
     "task_approved": "{{actor}}: принят раунд {{round}}",
+    "task_approved_note": "{{actor}}: принят раунд {{round}}: {{note}}",
     "task_cancelled": "{{actor}}: задача отменена",
     "task_cancelled_reason": "{{actor}}: задача отменена: {{reason}}",
     "brief_edited": "{{actor}}: бриф изменён",
