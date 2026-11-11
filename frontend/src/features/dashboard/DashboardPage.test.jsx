@@ -216,6 +216,60 @@ describe('a full dashboard', () => {
     );
   });
 
+  it("writes each designer's total on that designer's bar, also without the top provider", async () => {
+    // The chart leaves out a zero-width segment, so a designer who has not used the provider on
+    // top of the stack has no segment there to carry the label.
+    const designer = (
+      /** @type {number} */ designerId,
+      /** @type {string} */ name,
+      /** @type {{provider: string, credits: string}[]} */ byProvider,
+      /** @type {string} */ total,
+    ) => ({ designerId, name, total, byProvider });
+    renderDashboard({
+      dashboard: makeDashboard({
+        ai: {
+          total: '930.50',
+          byProvider: [
+            { provider: 'Runway', credits: '270.00' },
+            { provider: 'Midjourney', credits: '660.50' },
+          ],
+          byDesigner: [
+            designer(3, 'Anna K.', [{ provider: 'Runway', credits: '100.00' }], '100.00'),
+            designer(5, 'Igor S.', [{ provider: 'Midjourney', credits: '200.00' }], '200.00'),
+            designer(
+              7,
+              'Maria T.',
+              [
+                { provider: 'Runway', credits: '170.00' },
+                { provider: 'Midjourney', credits: '460.50' },
+              ],
+              '630.50',
+            ),
+          ],
+        },
+      }),
+    });
+    const chart = within(await section('AI credits by designer')).getByTestId('chart');
+    const rowOf = (/** @type {string} */ text) => {
+      const element = [...chart.querySelectorAll('svg text')].find(
+        (candidate) => candidate.textContent === text,
+      );
+      return element === undefined ? undefined : Math.round(Number(element.getAttribute('y')));
+    };
+    const labels = [...chart.querySelectorAll('svg text')]
+      .map((text) => text.textContent ?? '')
+      .filter((text) => /^\d+\.\d\d$/.test(text));
+    expect(labels.sort()).toEqual(['100.00', '200.00', '630.50']);
+    for (const [name, total] of [
+      ['Maria T.', '630.50'],
+      ['Igor S.', '200.00'],
+      ['Anna K.', '100.00'],
+    ]) {
+      expect(rowOf(total)).toBeDefined();
+      expect(rowOf(total)).toBe(rowOf(name));
+    }
+  });
+
   it('colours a provider the same in both charts', async () => {
     renderDashboard();
     const byProvider = await section('AI credits by provider');

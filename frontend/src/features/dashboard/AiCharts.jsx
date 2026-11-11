@@ -119,11 +119,17 @@ function ProviderLegend({ items, colors }) {
 }
 
 /**
- * The value written right of a bar's end (the content of a LabelList).
- * @param {{labels: string[]} & Record<string, any>} props labels is the text per row, in row
- *   order; the rest is what the chart tells a label (x, y, width, height, index)
+ * The value written right of a bar's end (the content of a LabelList whose dataKey is "row").
+ * The row comes from the data, not from the label's index: the chart leaves zero-width segments
+ * out, so the index of a label is not always the row of its bar.
+ * @param {{labels: (string | null)[]} & Record<string, any>} props labels is the text per row,
+ *   null for none; the rest is what the chart tells a label (x, y, width, height, value = row)
  */
-function EndLabel({ labels, x, y, width, height, index }) {
+function EndLabel({ labels, x, y, width, height, value }) {
+  const text = labels[Number(value)];
+  if (text === undefined || text === null) {
+    return null;
+  }
   return (
     <text
       x={Number(x) + Number(width) + 6}
@@ -132,7 +138,7 @@ function EndLabel({ labels, x, y, width, height, index }) {
       fill="var(--app-text)"
       fontSize={12}
     >
-      {labels[index]}
+      {text}
     </text>
   );
 }
@@ -147,7 +153,11 @@ function ByProvider({ ai, colors }) {
   const rows = [...ai.byProvider].sort(byCreditsDesc);
   const hasData = rows.some(({ credits }) => isPositive(credits));
   const labels = rows.map(({ credits }) => formatCredits(credits, lng));
-  const data = rows.map(({ provider, credits }) => ({ name: provider, credits: toPlot(credits) }));
+  const data = rows.map(({ provider, credits }, row) => ({
+    name: provider,
+    row,
+    credits: toPlot(credits),
+  }));
 
   return (
     <Section title={t('ai.byProvider.title')} name="ai-provider">
@@ -184,7 +194,10 @@ function ByProvider({ ai, colors }) {
                   <Rectangle {...props} fill={colors.get(props.payload.name)} />
                 )}
               >
-                <LabelList content={(props) => <EndLabel {...props} labels={labels} />} />
+                <LabelList
+                  dataKey="row"
+                  content={(props) => <EndLabel {...props} labels={labels} />}
+                />
               </Bar>
             </HorizontalBars>
             <ProviderLegend
@@ -229,12 +242,22 @@ function ByDesigner({ ai, colors }) {
     /** @type {string} */ provider,
   ) => designer.byProvider.find((entry) => entry.provider === provider)?.credits ?? '0.00';
 
-  const data = designers.map((designer) => ({
+  const data = designers.map((designer, row) => ({
     name: designer.name,
+    row,
     ...Object.fromEntries(providers.map((p) => [keyOf(p), toPlot(creditsOf(designer, p))])),
   }));
-  const totals = designers.map(({ total }) => formatCredits(total, lng));
-  const lastKey = keyOf(providers[providers.length - 1] ?? '');
+  // The total is written after the outermost segment a designer has (the stack's top provider
+  // may be one they never used, and a zero-width segment is not drawn).
+  const topKeys = designers.map((designer) => {
+    const usedByDesigner = providers.filter((p) => isPositive(creditsOf(designer, p)));
+    return usedByDesigner.length === 0 ? null : keyOf(usedByDesigner[usedByDesigner.length - 1]);
+  });
+  /** @param {string} provider the totals that go at the end of this provider's segments */
+  const totalsAfter = (provider) =>
+    designers.map(({ total }, row) =>
+      topKeys[row] === keyOf(provider) ? formatCredits(total, lng) : null,
+    );
 
   return (
     <Section title={t('ai.byDesigner.title')} name="ai-designer">
@@ -273,8 +296,11 @@ function ByDesigner({ ai, colors }) {
                   fill={colors.get(provider)}
                   isAnimationActive={false}
                 >
-                  {keyOf(provider) === lastKey && (
-                    <LabelList content={(props) => <EndLabel {...props} labels={totals} />} />
+                  {topKeys.includes(keyOf(provider)) && (
+                    <LabelList
+                      dataKey="row"
+                      content={(props) => <EndLabel {...props} labels={totalsAfter(provider)} />}
+                    />
                   )}
                 </Bar>
               ))}
