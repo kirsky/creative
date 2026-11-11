@@ -8,15 +8,15 @@ use JsonSerializable;
 
 /**
  * A task as its page shows it (schema TaskDetail): the card plus the brief. $assignments lists who has
- * worked on the task, oldest first. $rounds and $metrics are part of the contract from the start and
- * stay empty (and null) until the modules that fill them exist.
+ * worked on the task and $rounds what was handed in, both oldest first. $metrics is part of the contract
+ * from the start and stays null until the module that fills it exists.
  */
 final readonly class TaskDetail implements JsonSerializable
 {
     /**
      * @param list<array<string, int|string>> $references a link {type, url} or a file {type, fileId, name, mime, size}
      * @param list<Assignment> $assignments
-     * @param list<never> $rounds
+     * @param list<RoundView> $rounds
      */
     public function __construct(
         public TaskCard $card,

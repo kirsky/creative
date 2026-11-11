@@ -588,6 +588,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/tasks/{id}/rounds:
+    post:
+      operationId: submitRound
+      summary: Submit a round of deliverables
+      description: >
+        The assigned designer hands in a round for review. The task goes from `in_progress` or
+        `revisions_required` to `under_review`; the round gets the next number (1 for the first
+        submission, one more than the rounds so far after that, counted under the row lock); the files
+        become its deliverables and are attached to the task; a `round_submitted` event
+        `{"round","fileCount"}` is recorded and `updated_at` set, all in one transaction. Earlier rounds
+        and their files stay as they are.
+
+
+        Answers, in the order they are decided: 404 not_found when there is no such task or the user
+        may not view it (a designer who is not the assignee cannot view a task in progress); 403
+        forbidden for a user who may view it but is not its assigned designer (the creating buyer, a
+        manager, a designer looking at a `new` task); 409 invalid_transition when the task is in any
+        other status, which is also what the second of two simultaneous or repeated submissions gets;
+        422 validation_failed for the body. The permission and the status are checked before the body.
+
+
+        Field codes of the 422: `fileIds`: required (missing or empty), invalid (not a list), too_many
+        (more than 25, params.max 25); `fileIds.<index>`: invalid (not a positive integer). `note`:
+        invalid (not a string), too_long (more than 2000 characters, params.max 2000). Any other field:
+        unknown_field. A file id that is the designer's own, unattached upload is accepted; any other
+        (unknown, somebody else's, attached already, or listed twice) is field `files`, code
+        invalid_choice, and nothing at all is recorded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRound'
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '201':
+          description: The round was recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [number]
+                additionalProperties: false
+                properties:
+                  number:
+                    type: integer
+                    minimum: 1
+                    description: The number of the new round.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The task is not in progress or awaiting revisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
 components:
   securitySchemes:
     session:
@@ -894,7 +957,7 @@ components:
             type: string
             enum: [pick_up, release, submit, edit_brief, report_ai_usage, approve, request_revisions, cancel]
     TaskDetail:
-      description: The card plus the brief. assignments is always present, oldest first; rounds and metrics are always present and stay empty (null) until their modules exist.
+      description: The card plus the brief. assignments and rounds are always present, oldest first; metrics is always present and stays null until its module exists.
       allOf:
         - $ref: '#/components/schemas/TaskCard'
         - type: object
@@ -936,9 +999,78 @@ components:
                 $ref: '#/components/schemas/Assignment'
             rounds:
               type: array
-              items: {}
+              description: Every round of the task, oldest first (number 1 first); empty until the first submission.
+              items:
+                $ref: '#/components/schemas/Round'
             metrics:
               type: ['object', 'null']
+    NewRound:
+      type: object
+      required: [fileIds]
+      additionalProperties: false
+      properties:
+        fileIds:
+          type: array
+          description: >
+            The deliverables, 1 to 25 distinct ids of files the designer uploaded (POST /api/files) and
+            has not attached yet.
+          minItems: 1
+          maxItems: 25
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+        note:
+          type: string
+          maxLength: 2000
+          description: What the designer tells the buyer about the round. Stored as written; an empty string means no note.
+    Round:
+      type: object
+      description: One submission of a task and what the buyer decided about it.
+      required: [number, submittedAt, submittedBy, note, files, decision, decisionReason, decidedAt, aiUsage]
+      additionalProperties: false
+      properties:
+        number:
+          type: integer
+          minimum: 1
+        submittedAt:
+          type: string
+          description: UTC, to the millisecond.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+        submittedBy:
+          $ref: '#/components/schemas/Person'
+        note:
+          type: ['string', 'null']
+        files:
+          type: array
+          description: The deliverables, in the order they were listed. Download each with GET /api/files/{id}.
+          items:
+            type: object
+            required: [id, name, size, mime]
+            additionalProperties: false
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              size:
+                type: integer
+              mime:
+                type: string
+        decision:
+          description: What the buyer decided; null while the round waits for review.
+          enum: [revisions_requested, approved, null]
+        decisionReason:
+          type: ['string', 'null']
+          description: The reason (or approval note) that came with the decision.
+        decidedAt:
+          type: ['string', 'null']
+          description: UTC, to the millisecond; null while undecided.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+        aiUsage:
+          type: array
+          description: The AI credits spent on the round. Always empty until the AI usage module exists.
+          items: {}
     Assignment:
       type: object
       required: [designer, assignedAt, endedAt, endedHow]
@@ -1074,7 +1206,7 @@ components:
         code:
           type: string
           description: >
-            What is wrong with the field: required, too_short, too_long, out_of_range,
+            What is wrong with the field: required, too_short, too_long, too_many, out_of_range,
             invalid_choice, invalid_url, must_be_future, invalid_amount, unknown_field, invalid.
             On POST /api/tasks, `geo` and `references.<index>.<key>` name the field.
         params:

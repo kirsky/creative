@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 /*
- * One contender of PickUpConcurrencyTest, run as a separate OS process: php pickup_process.php
- * <designer id> <task id> <gate file>.
+ * One contender of a concurrency test (see RaceRunner), run as a separate OS process:
+ * php request_process.php <user id> <method> <path> <gate file> [<JSON body>].
  *
- * It boots the application with a connection of its own to the test database, signs the designer
+ * It boots the application with a connection of its own to the test database, signs the user
  * in, prints "ready", then waits for the gate: a shared flock on <gate file>, which the test holds
  * exclusively until every contender is ready. When the test lets go, all contenders send their
- * POST /api/tasks/{id}/pickup at the same instant. The last line printed is the JSON
+ * request at the same instant. The last line printed is the JSON
  * {"status": <HTTP status>, "body": <response body>}.
  */
 
@@ -17,6 +17,7 @@ use App\Identity\SessionCookie;
 use App\Identity\SessionService;
 use App\Identity\UserRepository;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Slim\Psr7\Factory\StreamFactory;
 
 use function App\createApp;
 
@@ -33,12 +34,12 @@ putenv('DB_NAME=' . $testDatabase);
 putenv('APP_ENV=test');
 
 $arguments = $_SERVER['argv'] ?? [];
-if (!is_array($arguments) || count($arguments) !== 4) {
-    fwrite(STDERR, "usage: pickup_process.php <designer id> <task id> <gate file>\n");
+if (!is_array($arguments) || count($arguments) < 5 || count($arguments) > 6) {
+    fwrite(STDERR, "usage: request_process.php <user id> <method> <path> <gate file> [<JSON body>]\n");
     exit(2);
 }
 
-[, $designerId, $taskId, $gateFile] = array_map(static fn(mixed $argument): string => is_string($argument) ? $argument : '', $arguments);
+[, $userId, $method, $path, $gateFile, $json] = [...array_map(static fn(mixed $argument): string => is_string($argument) ? $argument : '', $arguments), ''];
 
 $app = createApp();
 $container = $app->getContainer();
@@ -49,13 +50,13 @@ if (!$sessions instanceof SessionService || !$users instanceof UserRepository) {
     exit(2);
 }
 
-$designer = $users->findById((int) $designerId);
-if ($designer === null) {
-    fwrite(STDERR, "No such designer.\n");
+$user = $users->findById((int) $userId);
+if ($user === null) {
+    fwrite(STDERR, "No such user.\n");
     exit(2);
 }
 
-$token = $sessions->start($designer, '172.18.0.1');
+$token = $sessions->start($user, '172.18.0.1');
 $session = $sessions->resolveSession($token);
 if ($session === null) {
     fwrite(STDERR, "The new session does not resolve.\n");
@@ -63,10 +64,15 @@ if ($session === null) {
 }
 
 $request = (new ServerRequestFactory())
-    ->createServerRequest('POST', '/api/tasks/' . (int) $taskId . '/pickup', ['REMOTE_ADDR' => '172.18.0.1'])
+    ->createServerRequest($method, $path, ['REMOTE_ADDR' => '172.18.0.1'])
     ->withCookieParams([SessionCookie::NAME => $token])
     ->withHeader('Cookie', SessionCookie::NAME . '=' . $token)
     ->withHeader('X-CSRF-Token', $session->csrfToken);
+if ($json !== '') {
+    $request = $request
+        ->withHeader('Content-Type', 'application/json')
+        ->withBody((new StreamFactory())->createStream($json));
+}
 
 $gate = fopen($gateFile, 'r');
 if ($gate === false) {

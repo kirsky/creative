@@ -385,6 +385,40 @@ final class TaskPolicyTest extends TestCase
         ];
     }
 
+    public function test_entitled_is_the_role_and_relation_without_the_status(): void
+    {
+        $policy = new TaskPolicy();
+        $creator = self::user(self::BUYER, Role::Buyer);
+        $assigned = self::user(self::DESIGNER, Role::Designer);
+        $other = self::user(self::DESIGNER + 1, Role::Designer);
+        $manager = self::user(self::MANAGER, Role::Manager);
+
+        foreach (TaskStatus::cases() as $status) {
+            $task = self::task($status, self::DESIGNER);
+
+            foreach ([Action::Release, Action::Submit, Action::ReportAiUsage] as $action) {
+                self::assertTrue($policy->entitled($assigned, $action, $task), $status->value . ' ' . $action->name);
+                self::assertFalse($policy->entitled($other, $action, $task), $status->value . ' ' . $action->name);
+                self::assertFalse($policy->entitled($creator, $action, $task), $status->value . ' ' . $action->name);
+                self::assertFalse($policy->entitled($manager, $action, $task), $status->value . ' ' . $action->name);
+            }
+            foreach ([Action::EditBrief, Action::Decide, Action::Cancel] as $action) {
+                self::assertTrue($policy->entitled($creator, $action, $task), $status->value . ' ' . $action->name);
+                self::assertFalse($policy->entitled($assigned, $action, $task), $status->value . ' ' . $action->name);
+                self::assertFalse($policy->entitled($manager, $action, $task), $status->value . ' ' . $action->name);
+            }
+            // Any designer is entitled to try a pick-up, whoever holds the task and in whatever status: the 409s are the workflow's.
+            self::assertTrue($policy->entitled($other, Action::PickUp, $task));
+            self::assertFalse($policy->entitled($creator, Action::PickUp, $task));
+            self::assertFalse($policy->entitled($manager, Action::PickUp, $task));
+        }
+
+        // Entitled is no more than can(): where the status forbids, can() is false and entitled() is not.
+        $done = self::task(TaskStatus::Completed, self::DESIGNER);
+        self::assertTrue($policy->entitled($assigned, Action::Submit, $done));
+        self::assertFalse($policy->can($assigned, Action::Submit, $done));
+    }
+
     private static function user(int $id, Role $role): User
     {
         return new User($id, "user{$id}", "User {$id}", $role, 'en', null);

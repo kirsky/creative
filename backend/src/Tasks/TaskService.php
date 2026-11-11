@@ -9,7 +9,6 @@ use App\Files\FileStore;
 use App\History\FieldAuditLog;
 use App\History\TaskEventLog;
 use App\History\TaskEventType;
-use App\Identity\Role;
 use App\Identity\User;
 use App\Shared\Clock;
 use App\Shared\Db\Database;
@@ -25,6 +24,7 @@ final class TaskService
         private readonly Database $database,
         private readonly Clock $clock,
         private readonly TaskPolicy $policy,
+        private readonly TaskGate $gate,
         private readonly NewTaskParser $parser,
         private readonly TaskRepository $tasks,
         private readonly FileStore $files,
@@ -92,16 +92,11 @@ final class TaskService
     {
         return $this->database->transaction(function () use ($actor, $taskId, $changes): Task {
             // Locked, so that a concurrent cancellation cannot slip in between the check and the update.
-            $task = $this->tasks->findForUpdate($taskId);
-            if ($task === null || !$this->policy->can($actor, Action::ViewTask, $task)) {
-                throw ApiError::notFound();
-            }
+            $task = $this->gate->lockAndAuthorize($actor, $taskId, Action::EditBrief);
 
+            // Only the creating buyer gets this far; of them, a finished task is a conflict, not a refusal.
             if (!$this->policy->can($actor, Action::EditBrief, $task)) {
-                // Only the creating buyer may edit; of them, a finished task is a conflict, not a refusal.
-                throw $actor->role === Role::Buyer && $actor->id === $task->createdBy
-                    ? new ApiError(409, 'task_not_editable')
-                    : ApiError::forbidden();
+                throw new ApiError(409, 'task_not_editable');
             }
 
             $edit = $this->parser->parseEdit($changes, $task->deadlineAt);

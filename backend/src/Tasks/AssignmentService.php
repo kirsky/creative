@@ -27,6 +27,7 @@ final class AssignmentService
         private readonly Database $database,
         private readonly Clock $clock,
         private readonly TaskPolicy $policy,
+        private readonly TaskGate $gate,
         private readonly TaskWorkflow $workflow,
         private readonly TaskRepository $tasks,
         private readonly AssignmentRepository $assignments,
@@ -52,10 +53,8 @@ final class AssignmentService
     public function pickUp(User $designer, int $taskId): Task
     {
         return $this->database->transaction(function () use ($designer, $taskId): Task {
-            $task = $this->tasks->findForUpdate($taskId);
-            if ($task === null) {
-                throw ApiError::notFound();
-            }
+            // Not lockAndAuthorize(): the answers are in their own order here (see above).
+            $task = $this->gate->lock($taskId);
 
             if (!$this->policy->can($designer, Action::ViewTask, $task)) {
                 throw $designer->role === Role::Designer && self::heldByAnother($task, $designer)
@@ -63,9 +62,9 @@ final class AssignmentService
                     : ApiError::notFound();
             }
 
-            // can(PickUp) also folds in the status and the assignee, which are the 409s below; so only
+            // entitled(PickUp) leaves out the status and the assignee, which are the 409s below; so only
             // somebody who is not a designer at all is refused here.
-            if (!$this->policy->can($designer, Action::PickUp, $task) && $designer->role !== Role::Designer) {
+            if (!$this->policy->entitled($designer, Action::PickUp, $task)) {
                 throw ApiError::forbidden();
             }
 
@@ -101,17 +100,7 @@ final class AssignmentService
     public function release(User $designer, int $taskId): Task
     {
         return $this->database->transaction(function () use ($designer, $taskId): Task {
-            $task = $this->tasks->findForUpdate($taskId);
-            if ($task === null || !$this->policy->can($designer, Action::ViewTask, $task)) {
-                throw ApiError::notFound();
-            }
-
-            // can(Release) also folds in the status, which is the 409 below: only who is not the
-            // assigned designer is refused here.
-            $assigned = $designer->role === Role::Designer && $task->assigneeId === $designer->id;
-            if (!$assigned && !$this->policy->can($designer, Action::Release, $task)) {
-                throw ApiError::forbidden();
-            }
+            $task = $this->gate->lockAndAuthorize($designer, $taskId, Action::Release);
 
             $target = $this->workflow->next($task->status, Transition::Release);
 

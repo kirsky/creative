@@ -8,6 +8,7 @@ use App\Identity\Http\LoginAction;
 use App\Identity\Http\LogoutAction;
 use App\Identity\Http\MeAction;
 use App\Identity\Http\SetLocaleAction;
+use App\Rounds\Http\SubmitRoundAction;
 use App\Shared\Http\HealthController;
 use App\Shared\Http\PublicRoute;
 use App\Tasks\Http\CreateTaskAction;
@@ -51,4 +52,5 @@ return static function (App $app): void {
     $app->get('/api/tasks/{id:[0-9]+}/history', HistoryAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/pickup', PickUpAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/release', ReleaseAction::class);
+    $app->post('/api/tasks/{id:[0-9]+}/rounds', SubmitRoundAction::class);
 };

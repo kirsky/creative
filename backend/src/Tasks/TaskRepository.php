@@ -173,6 +173,18 @@ final class TaskRepository
         return $statement->rowCount() === 1;
     }
 
+    /**
+     * Moves the task from $from to $to and sets updated_at, in one guarded UPDATE that changes the row
+     * only if it is still in $from. Returns false when it did not (the task moved on after it was read).
+     */
+    public function changeStatus(int $id, TaskStatus $from, TaskStatus $to, DateTimeImmutable $now): bool
+    {
+        $statement = $this->database->pdo()->prepare('UPDATE tasks SET status = ?, updated_at = ? WHERE id = ? AND status = ?');
+        $statement->execute([$to->value, self::stamp($now), $id, $from->value]);
+
+        return $statement->rowCount() === 1;
+    }
+
     private static function stamp(DateTimeImmutable $time): string
     {
         return $time->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME);

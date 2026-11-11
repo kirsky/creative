@@ -44,38 +44,53 @@ final class TaskPolicy
     /**
      * May $actor do $action? $task is needed for every action but CreateTask and ViewDashboard;
      * without it those answer false instead of throwing.
+     *
+     * That is entitled() and whether the task's status takes the move.
      */
     public function can(User $actor, Action $action, ?Task $task = null): bool
+    {
+        return $this->entitled($actor, $action, $task) && $this->statusAllows($action, $task);
+    }
+
+    /**
+     * Is $actor the kind of user who does $action to $task, whatever its status is? The role and the
+     * relation to the task (its creating buyer, its assigned designer) and nothing else. Callers that
+     * must tell a refusal (403 forbidden) from a conflict of status (409) ask this first and let
+     * TaskWorkflow, or their own rule, decide the status; see TaskGate.
+     */
+    public function entitled(User $actor, Action $action, ?Task $task = null): bool
     {
         return match ($action) {
             Action::CreateTask => $actor->role === Role::Buyer,
             Action::ViewDashboard => $actor->role === Role::Manager,
             Action::ViewTask => $task !== null && $this->canView($actor, $task),
+            Action::PickUp => $task !== null && $actor->role === Role::Designer,
+            Action::Release, Action::Submit, Action::ReportAiUsage => $task !== null && $this->isAssignedDesigner($actor, $task),
+            Action::EditBrief, Action::Decide, Action::Cancel => $task !== null && $this->isCreatingBuyer($actor, $task),
+        };
+    }
+
+    /**
+     * Does the status of $task (and, for a pick-up, its lack of an assignee) take $action? True for
+     * the actions that do not depend on it.
+     */
+    private function statusAllows(Action $action, ?Task $task): bool
+    {
+        return match ($action) {
+            Action::CreateTask, Action::ViewDashboard, Action::ViewTask => true,
             Action::PickUp => $task !== null
-                && $actor->role === Role::Designer
                 && $task->assigneeId === null
                 && $this->workflow->allows($task->status, Transition::Pickup),
-            Action::Release => $task !== null
-                && $this->isAssignedDesigner($actor, $task)
-                && $this->workflow->allows($task->status, Transition::Release),
-            Action::Submit => $task !== null
-                && $this->isAssignedDesigner($actor, $task)
-                && $this->workflow->allows($task->status, Transition::Submit),
+            Action::Release => $task !== null && $this->workflow->allows($task->status, Transition::Release),
+            Action::Submit => $task !== null && $this->workflow->allows($task->status, Transition::Submit),
             // A coarse gate: the statuses in which a round is being prepared (In Progress, Revisions
             // Required) or waits for the buyer (Under Review). Whether one particular round can still
             // be edited, that is, has not been decided yet, is checked where the lines are written.
             Action::ReportAiUsage => $task !== null
-                && $this->isAssignedDesigner($actor, $task)
                 && in_array($task->status, [TaskStatus::InProgress, TaskStatus::UnderReview, TaskStatus::RevisionsRequired], true),
-            Action::EditBrief => $task !== null
-                && $this->isCreatingBuyer($actor, $task)
-                && !$task->status->isTerminal(),
-            Action::Decide => $task !== null
-                && $this->isCreatingBuyer($actor, $task)
-                && $this->workflow->allows($task->status, Transition::Approve),
-            Action::Cancel => $task !== null
-                && $this->isCreatingBuyer($actor, $task)
-                && $this->workflow->allows($task->status, Transition::Cancel),
+            Action::EditBrief => $task !== null && !$task->status->isTerminal(),
+            Action::Decide => $task !== null && $this->workflow->allows($task->status, Transition::Approve),
+            Action::Cancel => $task !== null && $this->workflow->allows($task->status, Transition::Cancel),
         };
     }
 
