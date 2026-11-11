@@ -28,6 +28,9 @@ export function WorkloadTable({ workload }) {
           <NoData text={t('noData')} />
         ) : (
           <>
+            <p className="dashboard-section__scroll-hint" aria-hidden="true">
+              {t('workload.scrollHint')}
+            </p>
             <div className="dashboard-section__scroll">
               <table className="dashboard-table" aria-labelledby={headingId}>
                 <thead>

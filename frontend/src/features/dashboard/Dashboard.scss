@@ -108,6 +108,20 @@
   &__scroll {
     overflow-x: auto;
   }
+
+  // Tells a phone user that the last column is off-screen. Only shown where the table can
+  // actually overflow.
+  &__scroll-hint {
+    display: none;
+    margin: 0 0 0.25rem;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+    text-align: right;
+
+    @media (width <= 48em) {
+      display: block;
+    }
+  }
 }
 
 .dashboard-table {

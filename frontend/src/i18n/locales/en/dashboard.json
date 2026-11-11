@@ -61,7 +61,8 @@
     "revisions": "Revisions",
     "inReview": "In review",
     "overdue": "Overdue",
-    "hint": "Click a designer to list their tasks."
+    "hint": "Click a designer to list their tasks.",
+    "scrollHint": "Scroll sideways →"
   },
   "overdue": {
     "title": "Overdue tasks",

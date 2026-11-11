@@ -145,6 +145,15 @@ describe('a full dashboard', () => {
     expect(overdueOf('Igor S.')).not.toHaveAttribute('data-danger');
   });
 
+  it('hints that the workload table scrolls sideways (shown by CSS on narrow screens only)', async () => {
+    renderDashboard();
+    const region = await section('Designer workload');
+    const hint = within(region).getByText('Scroll sideways →');
+    expect(hint).toHaveClass('dashboard-section__scroll-hint');
+    // Decoration for sighted users: the table itself is complete for assistive technology.
+    expect(hint).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('lists the overdue tasks with a link, the assignee, the status and how late', async () => {
     renderDashboard();
     const region = await section('Overdue tasks');
