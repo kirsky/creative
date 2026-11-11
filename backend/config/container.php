@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Files\AttachedTaskResolver;
+use App\Files\NullAttachedTaskResolver;
 use App\Identity\Cli\RotateCredentialsCommand;
 use App\Shared\Clock;
 use App\Shared\Config;
@@ -13,8 +15,10 @@ use Monolog\Level;
 use Monolog\Logger;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Psr7\Factory\ResponseFactory;
+use Slim\Psr7\Factory\StreamFactory;
 
 use function DI\autowire;
 use function DI\factory;
@@ -36,6 +40,11 @@ return static function (array $overrides = []): ContainerInterface {
         Clock::class => autowire(SystemClock::class),
 
         ResponseFactoryInterface::class => autowire(ResponseFactory::class),
+        StreamFactoryInterface::class => autowire(StreamFactory::class),
+
+        // Which tasks a file is attached to. Until the tasks table exists, none: only the uploader can
+        // read a file. The task repository takes this over.
+        AttachedTaskResolver::class => autowire(NullAttachedTaskResolver::class),
 
         // Demo commands take APP_ENV and the SAPI as plain constructor values (tests pass others);
         // DemoGuard decides what they may be.

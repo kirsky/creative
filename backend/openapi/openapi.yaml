@@ -164,6 +164,136 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /api/files:
+    post:
+      operationId: uploadFile
+      summary: Upload one file
+      description: >
+        Stores one file and answers with its id, to be attached to a task by a later request.
+        Buyers and designers may upload; a manager cannot (403 forbidden). The body is
+        multipart/form-data with exactly one file in the field `file`.
+
+
+        The type is decided from the bytes, never from the file name or the media type the client
+        sent. Allowed: PNG, JPEG, GIF, WebP, any video and audio type, PDF, ZIP (which covers zipped
+        design containers such as .fig, .sketch and .xd) and Photoshop (PSD). Everything else, SVG
+        and HTML included, is 422 file_type_not_allowed. A file of zero bytes is 422 file_empty. A
+        file over the limit (99 MB, `params.maxBytes`) is 413 file_too_large, and so is a request
+        whose body is larger than the server accepts. Only the first problem found is reported.
+
+
+        The client's file name is kept as a label only, after cleaning: text before the last path
+        separator, control characters and invisible direction marks are removed, runs of whitespace
+        become one space, and it is cut to 255 characters keeping a short extension (`file` if
+        nothing is left). It is never used as a path.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              additionalProperties: false
+              properties:
+                file:
+                  type: string
+                  contentMediaType: application/octet-stream
+                  description: The file. Send one file; a second one is 422 validation_failed on `file`.
+      responses:
+        '201':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoredFile'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: >
+            file_too_large. The file, or the whole request, is over the limit; params.maxBytes is the
+            limit for one file. nginx answers a request over its own limit (110 MB) with a 413 that
+            is not JSON, so a client must be ready for that too.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileTooLargeError'
+        '422':
+          description: >
+            validation_failed with field `file` and code `required` (no file in the field `file`) or
+            `invalid` (more than one file, or an upload that did not complete); file_type_not_allowed;
+            or file_empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/files/{id}:
+    get:
+      operationId: downloadFile
+      summary: Download a file
+      description: >
+        Streams the file as an attachment to the user who uploaded it and to everybody who may view
+        a task it is attached to. For anybody else, and for an id that does not exist, the answer is
+        the same 404 not_found.
+
+
+        Content-Type is the type detected when the file was stored. X-Content-Type-Options: nosniff
+        and a Content-Security-Policy with `sandbox` are always sent, and the file is never shown
+        inline. Range requests are not supported: a Range header is ignored and the whole file is sent.
+      security:
+        - session: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: The file.
+          headers:
+            Content-Disposition:
+              required: true
+              description: >
+                attachment; filename="<ASCII fallback>"; filename*=UTF-8''<percent-encoded name>.
+                The fallback never contains a quote, backslash or control character.
+              schema:
+                type: string
+            Content-Length:
+              required: true
+              schema:
+                type: integer
+                minimum: 1
+            X-Content-Type-Options:
+              required: true
+              schema:
+                type: string
+                const: nosniff
+            Content-Security-Policy:
+              required: true
+              schema:
+                type: string
+                const: default-src 'none'; sandbox
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                const: private, no-cache
+          content:
+            '*/*':
+              schema:
+                type: string
+                contentMediaType: application/octet-stream
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          description: not_found. There is no such file, or the user may not read it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     session:
@@ -281,6 +411,46 @@ components:
                   required: [retryAfterSeconds]
                   properties:
                     retryAfterSeconds:
+                      type: integer
+                      minimum: 1
+    StoredFile:
+      type: object
+      description: An uploaded file, as stored.
+      required: [id, name, mime, size]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The cleaned client file name. A label to display as text, never a path.
+        mime:
+          type: string
+          description: The type found in the bytes (for example image/png), whatever the client claimed.
+        size:
+          type: integer
+          minimum: 1
+          description: Bytes stored.
+    FileTooLargeError:
+      description: The error envelope of a 413 file_too_large answer, which always says the limit.
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          required: [error]
+          properties:
+            error:
+              type: object
+              required: [params]
+              properties:
+                code:
+                  const: file_too_large
+                params:
+                  type: object
+                  required: [maxBytes]
+                  properties:
+                    maxBytes:
                       type: integer
                       minimum: 1
     ErrorCode:

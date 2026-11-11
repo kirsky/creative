@@ -27,6 +27,7 @@ use RuntimeException;
 use Slim\App;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Slim\Psr7\Factory\StreamFactory;
+use Slim\Psr7\UploadedFile;
 
 use function App\createApp;
 
@@ -63,14 +64,18 @@ abstract class ApiTestCase extends DatabaseTestCase
 
     /**
      * (Re)builds the application with the given configuration and the test's database, clock and log.
+     * $overrides replace further container definitions by name (a fake collaborator, say).
+     *
+     * @param array<string, mixed> $overrides
      */
-    protected function bootApp(Config $config): void
+    protected function bootApp(Config $config, array $overrides = []): void
     {
         $this->app = createApp([
             Config::class => $config,
             Database::class => $this->database,
             Clock::class => $this->clock,
             LoggerInterface::class => new Logger('test', [$this->logs]),
+            ...$overrides,
         ]);
     }
 
@@ -99,10 +104,11 @@ abstract class ApiTestCase extends DatabaseTestCase
      * The request request() would send, without a session.
      *
      * @param array<string, mixed> $body
+     * @param array<string, string> $serverParams further $_SERVER entries, for example CONTENT_LENGTH
      */
-    protected function buildRequest(string $method, string $path, array $body = []): ServerRequestInterface
+    protected function buildRequest(string $method, string $path, array $body = [], array $serverParams = []): ServerRequestInterface
     {
-        $request = (new ServerRequestFactory())->createServerRequest($method, $path, ['REMOTE_ADDR' => '172.18.0.1']);
+        $request = (new ServerRequestFactory())->createServerRequest($method, $path, ['REMOTE_ADDR' => '172.18.0.1', ...$serverParams]);
 
         parse_str($request->getUri()->getQuery(), $query);
         $request = $request->withQueryParams($query);
@@ -114,6 +120,56 @@ abstract class ApiTestCase extends DatabaseTestCase
         }
 
         return $request;
+    }
+
+    /**
+     * Uploads one file the way a browser form does: multipart/form-data with the file in $field.
+     * The bytes go through a temporary file of this test, as PHP hands uploads to the application.
+     * With $as the request carries that user's session and CSRF token.
+     */
+    public function upload(string $contents, string $clientName = 'file.bin', ?User $as = null, string $field = 'file', ?string $clientType = null, string $path = '/api/files'): ResponseInterface
+    {
+        return $this->uploadFiles([$field => $this->uploadedFile($contents, $clientName, $clientType)], $as, $path);
+    }
+
+    /**
+     * An upload as the application receives it: a file in this test's work directory plus what the
+     * client said about it. $size and $error default to the truth (the length of $contents, no error).
+     */
+    protected function uploadedFile(string $contents, string $clientName = 'file.bin', ?string $clientType = null, ?int $size = null, int $error = UPLOAD_ERR_OK): UploadedFile
+    {
+        $incoming = $this->workDir . '/incoming';
+        if (!is_dir($incoming) && !mkdir($incoming, 0700)) {
+            throw new RuntimeException('Cannot create the directory for incoming uploads.');
+        }
+
+        $file = $incoming . '/' . bin2hex(random_bytes(8));
+        if (file_put_contents($file, $contents) !== strlen($contents)) {
+            throw new RuntimeException('Cannot write the incoming upload.');
+        }
+
+        return new UploadedFile($file, $clientName, $clientType, $size ?? strlen($contents), $error);
+    }
+
+    /**
+     * Sends a multipart request carrying exactly these uploaded files (a tree, like PHP's $_FILES
+     * after normalising). For edge cases upload() cannot express: several files, a PHP upload error.
+     *
+     * @param array<string, mixed> $files
+     * @param array<string, string> $serverParams
+     */
+    protected function uploadFiles(array $files, ?User $as = null, string $path = '/api/files', array $serverParams = []): ResponseInterface
+    {
+        $request = $this->buildRequest('POST', $path, serverParams: $serverParams)
+            ->withHeader('Content-Type', 'multipart/form-data; boundary=----creativetest')
+            ->withUploadedFiles($files);
+
+        if ($as !== null) {
+            [$token, $csrfToken] = $this->startSession($as);
+            $request = self::withSession($request, $token, $csrfToken);
+        }
+
+        return $this->handle($this->prepareRequest($request));
     }
 
     /**
@@ -198,6 +254,43 @@ abstract class ApiTestCase extends DatabaseTestCase
         $statement = $this->database->pdo()->query('SELECT COUNT(*) FROM `' . str_replace('`', '``', $table) . '`');
 
         return $statement === false ? 0 : (int) $statement->fetchColumn();
+    }
+
+    /**
+     * The rows a query returns on the test database, column name => value (integers come back as integers).
+     *
+     * @param list<int|string> $parameters
+     * @return list<array<string, mixed>>
+     */
+    protected function fetchRows(string $sql, array $parameters = []): array
+    {
+        $statement = $this->database->pdo()->prepare($sql);
+        $statement->execute($parameters);
+
+        $rows = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $named = [];
+            foreach (is_array($row) ? $row : [] as $column => $value) {
+                $named[(string) $column] = $value;
+            }
+            $rows[] = $named;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The first column of the first row a query returns on the test database, null when there is no row.
+     *
+     * @param list<int|string> $parameters
+     */
+    protected function fetchValue(string $sql, array $parameters = []): mixed
+    {
+        $statement = $this->database->pdo()->prepare($sql);
+        $statement->execute($parameters);
+        $value = $statement->fetchColumn();
+
+        return $value === false ? null : $value;
     }
 
     /**

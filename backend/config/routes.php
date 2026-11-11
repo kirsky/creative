@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Files\Http\DownloadAction;
+use App\Files\Http\UploadAction;
 use App\Identity\Http\LoginAction;
 use App\Identity\Http\LogoutAction;
 use App\Identity\Http\MeAction;
@@ -29,4 +31,7 @@ return static function (App $app): void {
     $app->post('/api/auth/logout', LogoutAction::class);
     $app->get('/api/auth/me', MeAction::class);
     $app->patch('/api/me/locale', SetLocaleAction::class);
+
+    $app->post('/api/files', UploadAction::class);
+    $app->get('/api/files/{id:[0-9]+}', DownloadAction::class);
 };

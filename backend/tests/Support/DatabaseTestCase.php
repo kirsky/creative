@@ -24,11 +24,19 @@ use Symfony\Component\Console\Output\BufferedOutput;
  */
 abstract class DatabaseTestCase extends TestCase
 {
+    private const WORK_DIR_PREFIX = 'creative-test-';
+
     private static bool $migrated = false;
 
     protected Config $config;
 
     protected Database $database;
+
+    /** A directory of this test alone (removed in tearDown), for anything it writes to disk. */
+    protected string $workDir;
+
+    /** The test's UPLOAD_DIR, inside $workDir: never the real uploads volume. */
+    protected string $uploadDir;
 
     public static function setUpBeforeClass(): void
     {
@@ -44,9 +52,53 @@ abstract class DatabaseTestCase extends TestCase
     {
         parent::setUp();
 
-        $this->config = self::testConfig();
+        $this->workDir = sys_get_temp_dir() . '/' . self::WORK_DIR_PREFIX . bin2hex(random_bytes(8));
+        $this->uploadDir = $this->workDir . '/uploads';
+        if (!mkdir($this->workDir, 0700) || !mkdir($this->uploadDir, 0750)) {
+            throw new RuntimeException(sprintf('Cannot create the test directory %s.', $this->workDir));
+        }
+
+        $this->config = self::testConfig()->with(['UPLOAD_DIR' => $this->uploadDir]);
         $this->database = new Database($this->config);
         $this->truncateAllTables();
+    }
+
+    protected function tearDown(): void
+    {
+        self::removeTree($this->workDir);
+
+        parent::tearDown();
+    }
+
+    /**
+     * Deletes a directory tree made by a test. Symbolic links are removed, never followed, and
+     * nothing outside the temporary directory's test directories can be touched.
+     */
+    protected static function removeTree(string $path): void
+    {
+        if (!str_starts_with($path, sys_get_temp_dir() . '/' . self::WORK_DIR_PREFIX) || str_contains($path, '..')) {
+            throw new RuntimeException(sprintf('Refusing to delete %s: not a test directory.', $path));
+        }
+
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+
+            return;
+        }
+
+        if (!is_dir($path)) {
+            return;
+        }
+
+        // A test may have made a directory unreadable on purpose.
+        chmod($path, 0700);
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                self::removeTree($path . '/' . $entry);
+            }
+        }
+
+        rmdir($path);
     }
 
     /**
@@ -66,8 +118,8 @@ abstract class DatabaseTestCase extends TestCase
         return $config->with([
             'APP_ENV' => 'test',
             'DB_NAME' => $config->get('DB_TEST_NAME'),
-            // Never the real uploads volume.
-            'UPLOAD_DIR' => sys_get_temp_dir() . '/creative-test-uploads',
+            // Never the real uploads volume. Each test gets a directory of its own (see setUp).
+            'UPLOAD_DIR' => sys_get_temp_dir() . '/' . self::WORK_DIR_PREFIX . 'unused-uploads',
         ]);
     }
 

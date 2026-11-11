@@ -33,6 +33,9 @@
         <testsuite name="History">
             <directory>tests/History</directory>
         </testsuite>
+        <testsuite name="Files">
+            <directory>tests/Files</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
