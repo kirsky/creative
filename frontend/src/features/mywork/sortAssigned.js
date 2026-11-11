@@ -1,9 +1,16 @@
 /** @typedef {import('../board/api').BoardTask} BoardTask */
 
-/** Where a task falls: needs the designer first, then late work, then everything else. */
+/**
+ * Where a task falls: work the buyer sent back first, then the designer's late work in progress,
+ * then the rest of the work in progress, then what waits for the buyer. Only a task in progress
+ * counts as late work: an overdue task under review is the buyer's to act on.
+ */
 function group(/** @type {BoardTask} */ task) {
   if (task.status === 'revisions_required') {
     return 0;
+  }
+  if (task.status === 'under_review') {
+    return 3;
   }
   return task.isOverdue ? 1 : 2;
 }
@@ -24,27 +31,17 @@ function compare(a, b) {
 }
 
 /**
- * The designer's own tasks in the order they should be worked on: revisions required first, then
- * overdue ones, then the rest; each group by deadline (nearest first), ties by id. Among the rest, a
- * task under review (waiting for the buyer) comes after those still in progress. Returns a new list.
+ * The designer's own tasks in the order they should be worked on: revisions required, overdue
+ * tasks in progress, the other tasks in progress, then tasks under review; each group by deadline
+ * (nearest first), ties by id. Returns a new list.
  * @param {BoardTask[]} tasks
  * @returns {BoardTask[]}
  */
 export function sortAssigned(tasks) {
-  return [...tasks].sort((a, b) => {
-    const byGroup = compare(group(a), group(b));
-    if (byGroup !== 0) {
-      return byGroup;
-    }
-    if (group(a) === 2) {
-      const byReview = compare(
-        a.status === 'under_review' ? 1 : 0,
-        b.status === 'under_review' ? 1 : 0,
-      );
-      if (byReview !== 0) {
-        return byReview;
-      }
-    }
-    return compare(instant(a.deadlineAt), instant(b.deadlineAt)) || compare(a.id, b.id);
-  });
+  return [...tasks].sort(
+    (a, b) =>
+      compare(group(a), group(b)) ||
+      compare(instant(a.deadlineAt), instant(b.deadlineAt)) ||
+      compare(a.id, b.id),
+  );
 }

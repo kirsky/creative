@@ -159,6 +159,24 @@ describe('assigned tasks', () => {
     expect(screen.queryByText('Dropped Offer')).not.toBeInTheDocument();
   });
 
+  it('ranks an overdue task under review after a non-overdue one in progress, and keeps it styled late', async () => {
+    const lateReview = makeTask({
+      id: 10,
+      offer: 'Late Review',
+      status: 'under_review',
+      assignee: anna,
+      isOverdue: true,
+      deadlineAt: '2020-02-01T00:00:00Z',
+    });
+    renderMyWork({ tasks: [lateReview, working, late, revisions] });
+    const assigned = await section('My tasks');
+    expect(offers(assigned)).toEqual(['Casino Royal', 'Late Offer', 'Лото Клуб', 'Late Review']);
+    expect(within(assigned).getByText('Late Review').closest('article')).toHaveAttribute(
+      'data-overdue',
+      'true',
+    );
+  });
+
   it('shows the status of each assigned card', async () => {
     renderMyWork();
     const assigned = await section('My tasks');

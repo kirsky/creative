@@ -71,6 +71,21 @@ describe('sortAssigned', () => {
     expect(ids(sorted)).toEqual([4, 2, 1, 3]);
   });
 
+  it('ranks an overdue under_review task after a non-overdue in_progress one', () => {
+    const sorted = sortAssigned([
+      task({
+        id: 1,
+        status: 'under_review',
+        isOverdue: true,
+        deadlineAt: '2020-01-01T00:00:00Z',
+      }),
+      task({ id: 2, deadlineAt: '2099-01-01T00:00:00Z' }),
+      task({ id: 3, isOverdue: true, deadlineAt: '2020-06-01T00:00:00Z' }),
+      task({ id: 4, status: 'under_review', deadlineAt: '2099-02-01T00:00:00Z' }),
+    ]);
+    expect(ids(sorted)).toEqual([3, 2, 1, 4]);
+  });
+
   it('does not change its input and gives the same order for any input order', () => {
     const input = [
       task({ id: 1, deadlineAt: '2099-01-01T00:00:00Z' }),
