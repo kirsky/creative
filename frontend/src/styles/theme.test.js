@@ -32,6 +32,7 @@ const RED = '#ef4444';
 const APP_VARIABLES = [
   '--app-page-bg',
   '--app-card-bg',
+  '--app-column-bg',
   '--app-card-shadow',
   '--app-brand-gradient',
   '--app-text',

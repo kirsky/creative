@@ -60,17 +60,17 @@
   padding: var(--mantine-spacing-xs);
   border: 2px solid transparent;
   border-radius: var(--mantine-radius-md);
-  background-color: var(--mantine-color-gray-light);
+  background-color: var(--app-column-bg);
 
   // While a card that can be picked up is dragged, the column that takes it says so.
   &[data-drop-target='true'] {
-    border-color: var(--mantine-color-blue-filled);
+    border-color: var(--mantine-primary-color-filled);
     border-style: dashed;
   }
 
   &[data-drop-over='true'] {
     border-style: solid;
-    background-color: var(--mantine-color-blue-light);
+    background-color: var(--mantine-primary-color-light);
   }
 
   &__title {
