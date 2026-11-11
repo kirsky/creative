@@ -25,8 +25,9 @@ describe('Russian wording', () => {
     );
   });
 
-  it('labels the revision turnaround "Время на правки"', () => {
+  it('labels the revision turnaround "Время на правки", on the task page and the dashboard alike', () => {
     expect(ruTask.side.revisionTurnaround).toBe('Время на правки');
+    expect(ruDashboard.time.revision).toBe(ruTask.side.revisionTurnaround);
   });
 
   it('links back to the page the navigation calls "Моя работа"', () => {
