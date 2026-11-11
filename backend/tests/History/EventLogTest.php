@@ -79,6 +79,27 @@ final class EventLogTest extends ApiTestCase
         self::assertSame([], $log->forTask($this->task + 1000));
     }
 
+    public function test_for_tasks_groups_the_histories_in_order_and_skips_tasks_without_events(): void
+    {
+        $designer = $this->account('dina', 'Dina', Role::Designer);
+        $log = $this->log();
+        $silent = $this->insertTask($this->account('bob', 'Bob', Role::Buyer));
+
+        $this->clock->set(new DateTimeImmutable('2026-11-10T06:00:00Z'));
+        $a1 = $log->record($this->task, TaskEventType::TaskCreated, $designer);
+        $b1 = $log->record($this->otherTask, TaskEventType::TaskCreated, $designer);
+        $this->clock->advance('PT1M');
+        $a2 = $log->record($this->task, TaskEventType::TaskPickedUp, $designer);
+
+        $byTask = $log->forTasks([$this->task, $this->otherTask, $silent]);
+
+        self::assertSame([$this->task, $this->otherTask], array_keys($byTask));
+        self::assertSame([$a1, $a2], array_map(static fn(TaskEvent $event): int => $event->id, $byTask[$this->task]));
+        self::assertSame([$b1], array_map(static fn(TaskEvent $event): int => $event->id, $byTask[$this->otherTask]));
+        self::assertSame([], $log->forTasks([]));
+        self::assertSame([$this->task], array_keys($log->forTasks([$this->task])));
+    }
+
     public function test_the_actor_name_follows_a_renamed_user(): void
     {
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
@@ -282,7 +303,7 @@ final class EventLogTest extends ApiTestCase
     public function test_log_classes_expose_no_update_or_delete_methods(): void
     {
         $expected = [
-            TaskEventLog::class => ['__construct', 'forTask', 'record'],
+            TaskEventLog::class => ['__construct', 'forTask', 'forTasks', 'record'],
             FieldAuditLog::class => ['__construct', 'forEvent', 'record'],
         ];
 

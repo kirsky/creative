@@ -12,6 +12,7 @@ use App\Shared\Clock;
 use App\Shared\Db\Database;
 use App\Shared\Db\Row;
 use App\Shared\Http\ApiError;
+use DateTimeZone;
 use PDO;
 use RuntimeException;
 
@@ -32,6 +33,14 @@ final class TaskQuery
         FROM tasks t
         JOIN users creator ON creator.id = t.created_by
         LEFT JOIN users assignee ON assignee.id = t.assignee_id';
+
+    /**
+     * The rule of TaskCard::isOverdue as SQL on the alias t: the deadline is strictly before now (one
+     * parameter, a DATETIME string) and the task is still open.
+     */
+    public const string OVERDUE = "t.deadline_at < ? AND t.status NOT IN ('completed', 'cancelled')";
+
+    public const string DATETIME = 'Y-m-d H:i:s.u';
 
     public function __construct(
         private readonly Database $database,
@@ -83,6 +92,27 @@ final class TaskQuery
             self::SELECT . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where)) . ' ORDER BY t.deadline_at ASC, t.id ASC',
         );
         $statement->execute($parameters);
+
+        return $this->cards($actor, $statement->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * The overdue tasks (OVERDUE), by deadline (earliest first), then id; at most $limit. For the
+     * manager dashboard: a user who may not view it gets 403, since the SQL is not scoped to a viewer.
+     *
+     * @return list<TaskCard>
+     * @throws ApiError 403 forbidden unless $actor may ViewDashboard
+     */
+    public function overdue(User $actor, int $limit): array
+    {
+        if (!$this->policy->can($actor, Action::ViewDashboard)) {
+            throw ApiError::forbidden();
+        }
+
+        $statement = $this->database->pdo()->prepare(
+            self::SELECT . ' WHERE ' . self::OVERDUE . ' ORDER BY t.deadline_at ASC, t.id ASC LIMIT ' . max(0, $limit),
+        );
+        $statement->execute([$this->clock->now()->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME)]);
 
         return $this->cards($actor, $statement->fetchAll(PDO::FETCH_ASSOC));
     }

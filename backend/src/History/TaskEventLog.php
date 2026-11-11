@@ -25,6 +25,9 @@ final class TaskEventLog
 {
     private const DATETIME = 'Y-m-d H:i:s.u';
 
+    /** Tasks per query of forTasks(). */
+    private const CHUNK = 1000;
+
     private const JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 
     public function __construct(
@@ -83,6 +86,35 @@ final class TaskEventLog
         $statement->execute([$taskId]);
 
         return array_values(array_map(self::hydrate(...), $statement->fetchAll(PDO::FETCH_ASSOC)));
+    }
+
+    /**
+     * The histories of several tasks, each oldest first, in as few queries as possible (one per
+     * 1000 tasks). Tasks without events are not in the result.
+     *
+     * @param list<int> $taskIds
+     * @return array<int, list<TaskEvent>> by task id
+     */
+    public function forTasks(array $taskIds): array
+    {
+        $byTask = [];
+        foreach (array_chunk($taskIds, self::CHUNK) as $chunk) {
+            $statement = $this->database->pdo()->prepare(
+                'SELECT e.id, e.task_id, e.type, e.actor_id, u.display_name AS actor_name, e.at, e.payload
+                 FROM task_events e
+                 JOIN users u ON u.id = e.actor_id
+                 WHERE e.task_id IN (' . implode(',', array_fill(0, count($chunk), '?')) . ')
+                 ORDER BY e.at ASC, e.id ASC',
+            );
+            $statement->execute($chunk);
+
+            foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $event = self::hydrate($row);
+                $byTask[$event->taskId][] = $event;
+            }
+        }
+
+        return $byTask;
     }
 
     private static function hydrate(mixed $row): TaskEvent

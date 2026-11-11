@@ -747,6 +747,53 @@ paths:
                       $ref: '#/components/schemas/AiProvider'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+  /api/analytics/dashboard:
+    get:
+      operationId: getDashboard
+      summary: The manager dashboard
+      description: >
+        Managers only; buyers and designers get 403 forbidden (checked before the query).
+
+
+        `period` (`7d`, `30d` or `all`, default `all`) narrows `totals` and `averages` to the tasks
+        created in the last 7 or 30 days (by the server clock) and `ai` to the rounds submitted in
+        that time. `workload` and `overdue` are always the situation now.
+
+
+        `totals.total` counts every task, cancelled ones included; `active` counts `in_progress`,
+        `under_review` and `revisions_required` (not `new`, not completed or cancelled); `cancelled`
+        repeats `byStatus.cancelled`.
+
+
+        Averages are whole seconds, the floor of the mean, `null` when nothing qualifies: `cycleSeconds`
+        over the completed tasks (`completedCount` of them), the others over the closed intervals of
+        all the tasks of the period (see TaskTimeMetrics). They are elapsed wall-clock time.
+
+
+        `overdue.count` is the full number of overdue tasks (deadline strictly before now, not completed
+        or cancelled); `overdue.tasks` lists at most 50 of them, earliest deadline first. `workload` has
+        a row for every designer, with zeros, ordered by name. Credits are decimal strings.
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ['7d', '30d', all]
+            default: all
+      responses:
+        '200':
+          description: The dashboard.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
   /api/tasks/{id}/approve:
     post:
       operationId: approveTask
@@ -1195,6 +1242,160 @@ components:
           items:
             type: string
             enum: [pick_up, release, submit, edit_brief, report_ai_usage, approve, request_revisions, cancel]
+    Dashboard:
+      type: object
+      description: The numbers of the manager dashboard; see GET /api/analytics/dashboard for the period rules.
+      required: [totals, overdue, averages, workload, ai]
+      additionalProperties: false
+      properties:
+        totals:
+          type: object
+          required: [total, active, cancelled, byStatus]
+          additionalProperties: false
+          properties:
+            total:
+              type: integer
+              minimum: 0
+              description: Every task of the period, cancelled ones included.
+            active:
+              type: integer
+              minimum: 0
+              description: Tasks in `in_progress`, `under_review` or `revisions_required`.
+            cancelled:
+              type: integer
+              minimum: 0
+            byStatus:
+              type: object
+              required: [new, in_progress, under_review, revisions_required, completed, cancelled]
+              additionalProperties: false
+              properties:
+                new:
+                  type: integer
+                  minimum: 0
+                in_progress:
+                  type: integer
+                  minimum: 0
+                under_review:
+                  type: integer
+                  minimum: 0
+                revisions_required:
+                  type: integer
+                  minimum: 0
+                completed:
+                  type: integer
+                  minimum: 0
+                cancelled:
+                  type: integer
+                  minimum: 0
+        overdue:
+          type: object
+          required: [count, tasks]
+          additionalProperties: false
+          properties:
+            count:
+              type: integer
+              minimum: 0
+              description: All overdue tasks, not only the listed ones.
+            tasks:
+              type: array
+              maxItems: 50
+              description: The overdue tasks with the earliest deadlines, earliest first.
+              items:
+                $ref: '#/components/schemas/TaskCard'
+        averages:
+          type: object
+          description: Whole seconds of elapsed wall-clock time (the floor of the mean); null when nothing qualifies.
+          required: [cycleSeconds, queueWaitSeconds, reviewSecondsPerRound, revisionTurnaroundSeconds, completedCount]
+          additionalProperties: false
+          properties:
+            cycleSeconds:
+              type: [integer, 'null']
+              minimum: 0
+              description: First pickup to approval, over the completed tasks.
+            queueWaitSeconds:
+              type: [integer, 'null']
+              minimum: 0
+              description: Time in New that ended with a pickup.
+            reviewSecondsPerRound:
+              type: [integer, 'null']
+              minimum: 0
+              description: Submission to decision.
+            revisionTurnaroundSeconds:
+              type: [integer, 'null']
+              minimum: 0
+              description: Revisions requested to resubmission.
+            completedCount:
+              type: integer
+              minimum: 0
+              description: The completed tasks cycleSeconds is the mean of.
+        workload:
+          type: array
+          description: One row per designer, ordered by name.
+          items:
+            type: object
+            required: [designerId, name, inProgress, revisionsRequired, underReview, overdue]
+            additionalProperties: false
+            properties:
+              designerId:
+                type: integer
+              name:
+                type: string
+              inProgress:
+                type: integer
+                minimum: 0
+              revisionsRequired:
+                type: integer
+                minimum: 0
+              underReview:
+                type: integer
+                minimum: 0
+              overdue:
+                type: integer
+                minimum: 0
+                description: Their overdue tasks among those counted here.
+        ai:
+          type: object
+          required: [total, byProvider, byDesigner]
+          additionalProperties: false
+          properties:
+            total:
+              $ref: '#/components/schemas/Credits'
+            byProvider:
+              type: array
+              description: The most credits first.
+              items:
+                $ref: '#/components/schemas/ProviderCredits'
+            byDesigner:
+              type: array
+              description: The designers with usage, the most credits first.
+              items:
+                type: object
+                required: [designerId, name, total, byProvider]
+                additionalProperties: false
+                properties:
+                  designerId:
+                    type: integer
+                  name:
+                    type: string
+                  total:
+                    $ref: '#/components/schemas/Credits'
+                  byProvider:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProviderCredits'
+    Credits:
+      type: string
+      pattern: '^\d+\.\d{2}$'
+      description: A decimal amount of AI credits with two decimals.
+    ProviderCredits:
+      type: object
+      required: [provider, credits]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+        credits:
+          $ref: '#/components/schemas/Credits'
     TaskDetail:
       description: The card plus the brief. assignments and rounds are always present, oldest first; metrics is always present, for a new task too.
       allOf:

@@ -45,6 +45,9 @@
         <testsuite name="Metrics">
             <directory>tests/Metrics</directory>
         </testsuite>
+        <testsuite name="Analytics">
+            <directory>tests/Analytics</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

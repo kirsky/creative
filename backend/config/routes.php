@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\AiUsage\Http\ListProvidersAction;
 use App\AiUsage\Http\ReplaceAiUsageAction;
+use App\Analytics\Http\DashboardAction;
 use App\Files\Http\DownloadAction;
 use App\Files\Http\UploadAction;
 use App\Identity\Http\LoginAction;
@@ -64,4 +65,6 @@ return static function (App $app): void {
     $app->post('/api/tasks/{id:[0-9]+}/cancel', CancelAction::class);
 
     $app->get('/api/ai-providers', ListProvidersAction::class);
+
+    $app->get('/api/analytics/dashboard', DashboardAction::class);
 };
