@@ -50,6 +50,12 @@ const cellTexts = (element) =>
     )
     .filter((cells) => cells.length > 0);
 
+// The page is a lazy chunk (with the chart library): load it once up front, so the first test
+// does not spend its findBy timeout on the import (it ran out once, on a busy machine).
+beforeAll(async () => {
+  await import('./DashboardPage');
+});
+
 beforeEach(() => {
   setCsrfToken(null);
   jest.spyOn(Date, 'now').mockReturnValue(NOW_MS);
