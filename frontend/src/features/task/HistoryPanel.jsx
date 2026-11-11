@@ -6,6 +6,7 @@ import { translateApiError } from '../../i18n/errors';
 import { formatDateTime } from '../../i18n/format';
 import { useTaskHistory } from './api';
 import { renderEvent, renderEventDetails } from './eventText';
+import { useRetry } from './useRetry';
 
 /** @typedef {import('../../i18n/detect').Language} Language */
 
@@ -57,6 +58,7 @@ export function HistoryPanel({ taskId }) {
   const [opened, setOpened] = useState(false);
   const [requested, setRequested] = useState(false);
   const history = useTaskHistory(taskId, { enabled: requested });
+  const failure = useRetry(history);
 
   /** @param {string | null} value */
   function handleChange(value) {
@@ -72,18 +74,19 @@ export function HistoryPanel({ taskId }) {
         <Accordion.Item value={ITEM}>
           <Accordion.Control>{t('task:history.title')}</Accordion.Control>
           <Accordion.Panel>
-            {history.isError ? (
+            {failure.error !== null ? (
               <Alert color="red" title={t('task:history.error')}>
                 <p className="task-history__error-text">
-                  {history.error instanceof ApiRequestError
-                    ? translateApiError(t, history.error)
+                  {failure.error instanceof ApiRequestError
+                    ? translateApiError(t, failure.error)
                     : t('errors:unknown')}
                 </p>
                 <Button
                   variant="light"
                   color="red"
                   size="xs"
-                  onClick={() => void history.refetch()}
+                  loading={failure.retrying}
+                  onClick={() => void failure.retry()}
                 >
                   {t('common:retry')}
                 </Button>

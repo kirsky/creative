@@ -39,6 +39,7 @@
     "CIS": "СНГ"
   },
   "cancel": "Отмена",
+  "close": "Закрыть",
   "retry": "Повторить",
   "fileSize": {
     "bytes": "{{value}} Б",

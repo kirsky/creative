@@ -10,6 +10,8 @@ export const queryKeys = {
   task: (id) => ['task', id],
   /** @param {number | string} id */
   taskHistory: (id) => ['task', id, 'history'],
+  /** The root of every dashboard query, for invalidating all of them. */
+  dashboards: () => ['dashboard'],
   /** @param {string} period */
   dashboard: (period) => ['dashboard', period],
   aiProviders: () => ['aiProviders'],

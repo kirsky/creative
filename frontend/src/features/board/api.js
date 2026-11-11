@@ -47,7 +47,7 @@ export function useBoard(filters, { enabled = true } = {}) {
 
 /**
  * Picks a `new` task up (POST /api/tasks/{id}/pickup). Variable: the task id. Whatever the answer,
- * every board and the task are refreshed, and the mutation stays pending until the refetch is done,
+ * every board, dashboard and the task are refreshed, and the mutation stays pending until the refetch is done,
  * so a card keeps its spinner until it has moved. A rejection carries the API error code
  * (already_taken, invalid_transition, forbidden, not_found).
  * @returns {import('@tanstack/react-query').UseMutationResult<unknown, Error, number>}
@@ -60,6 +60,7 @@ export function usePickUp() {
     onSettled: (_data, _error, id) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.boards() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboards() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.task(id) }),
       ]),
   });

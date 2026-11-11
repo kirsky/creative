@@ -177,5 +177,63 @@
       "failedNotice_other": "{{count}} files failed to upload and will not be attached."
     },
     "submit": "Create task"
+  },
+  "actions": {
+    "label": "Task actions",
+    "pickUp": "Pick up",
+    "release": "Release task",
+    "submit": "Submit work",
+    "editAiUsage": "Edit AI usage",
+    "approve": "Approve",
+    "requestRevisions": "Request revisions",
+    "cancelTask": "Cancel task",
+    "optionalComment": "Comment (optional)",
+    "optionalReason": "Reason (optional)",
+    "submitDialog": {
+      "title": "Submit work",
+      "filesHint": "Attach at least one file.",
+      "note": "Note for the buyer",
+      "submit": "Submit",
+      "success": "Work submitted for review."
+    },
+    "aiUsage": {
+      "title": "AI usage",
+      "hint": "Add a line for each AI tool you used. Leave the list empty if you used no AI.",
+      "none": "No AI used",
+      "provider": "Provider",
+      "providerRow": "Provider {{number}}",
+      "credits": "Credits",
+      "creditsRow": "Credits {{number}}",
+      "add": "Add line",
+      "remove": "Remove line {{number}}",
+      "dialogTitle": "Edit AI usage",
+      "save": "Save",
+      "success": "AI usage saved."
+    },
+    "revisionsDialog": {
+      "title": "Request revisions",
+      "reason": "Reason for revisions",
+      "submit": "Request revisions",
+      "success": "Revisions requested."
+    },
+    "approveDialog": {
+      "title": "Approve this work?",
+      "message": "The task will be marked as completed.",
+      "confirm": "Approve",
+      "success": "Task approved."
+    },
+    "cancelDialog": {
+      "title": "Cancel this task?",
+      "message": "The task will be cancelled and taken off the board. This cannot be undone.",
+      "confirm": "Cancel task",
+      "keep": "Keep the task",
+      "success": "Task cancelled."
+    },
+    "releaseDialog": {
+      "title": "Release this task?",
+      "message": "The task returns to the pool and another designer can pick it up. Your rounds and files stay with the task.",
+      "confirm": "Release task",
+      "success": "Task released."
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setCsrfToken } from '../../api/client';
 import { errorResponse, makeMe, mockResponse } from '../../test/http';
@@ -93,6 +93,36 @@ describe('error', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('shows the Retry button as loading while it asks again', async () => {
+    let calls = 0;
+    /** @type {(response: ReturnType<typeof mockResponse>) => void} */
+    let release = () => {};
+    renderApp('/tasks/42', {
+      table: {
+        'GET /api/tasks/42': () => {
+          calls += 1;
+          return calls === 1
+            ? errorResponse(403, 'forbidden')
+            : new Promise((resolve) => {
+                release = resolve;
+              });
+        },
+      },
+    });
+    const retry = await screen.findByRole('button', { name: 'Try again' });
+    expect(retry).not.toHaveAttribute('data-loading');
+    await userEvent.click(retry);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Try again' })).toHaveAttribute(
+        'data-loading',
+        'true',
+      ),
+    );
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
+    await act(async () => release(mockResponse(200, makeTaskDetail())));
+    expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+
   it('treats a forbidden answer as an error, not as a missing task', async () => {
     renderApp('/tasks/42', { table: { 'GET /api/tasks/42': errorResponse(403, 'forbidden') } });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -111,7 +141,7 @@ describe('roles', () => {
     ).toBeInTheDocument();
   });
 
-  it('gives a manager no action buttons', async () => {
+  it('gives a manager no action elements, where a buyer gets some', async () => {
     renderApp('/tasks/42', {
       me: makeMe({ role: 'manager' }),
       table: {
@@ -122,6 +152,21 @@ describe('roles', () => {
       },
     });
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.queryByRole('button', { name: /approve|submit|pick up|revisions/i })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Task actions' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /approve|submit|pick up|revisions|cancel|release/i }),
+    ).toBeNull();
+    cleanup();
+
+    renderApp('/tasks/42', {
+      me: makeMe({ role: 'buyer' }),
+      table: {
+        'GET /api/tasks/42': mockResponse(
+          200,
+          makeTaskDetail({ status: 'under_review', allowedActions: ['approve'] }),
+        ),
+      },
+    });
+    expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
   });
 });

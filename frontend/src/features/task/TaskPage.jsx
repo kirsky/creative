@@ -5,14 +5,15 @@ import { ApiRequestError } from '../../api/ApiRequestError';
 import { translateApiError } from '../../i18n/errors';
 import { formatCountry, formatDeadline, formatDateTime, formatDuration } from '../../i18n/format';
 import { useAuth } from '../auth/useAuth';
+import { ActionBar } from './actions/ActionBar';
 import { parseTaskId, useTask } from './api';
 import { BriefPanel } from './BriefPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { DeliverablesPanel, RoundsPanel } from './RoundsPanel';
 import { SidePanel } from './SidePanel';
 import './Task.scss';
-import { TaskActions } from './TaskActions';
 import { PriorityBadge, StatusBadge } from './TaskBadges';
+import { useRetry } from './useRetry';
 
 /** @typedef {import('../../i18n/detect').Language} Language */
 
@@ -93,7 +94,7 @@ function Deadline({ task }) {
 /**
  * The task page, layout A: the work (brief, deliverables, rounds, actions) in the main column and
  * the facts in the side panel; the activity history is collapsed at the bottom. Read-only here:
- * the action buttons are mounted by TaskActions.
+ * the action buttons are the ActionBar's.
  * @param {{task: import('./api').TaskDetail}} props
  */
 function TaskView({ task }) {
@@ -126,11 +127,11 @@ function TaskView({ task }) {
           <BriefPanel task={task} />
           <DeliverablesPanel rounds={task.rounds} />
           <RoundsPanel rounds={task.rounds} />
-          <TaskActions />
+          <ActionBar task={task} />
         </div>
         <SidePanel task={task} />
       </div>
-      <HistoryPanel taskId={task.id} />
+      <HistoryPanel key={task.id} taskId={task.id} />
     </div>
   );
 }
@@ -141,6 +142,7 @@ export function TaskPage() {
   const { id } = useParams();
   const taskId = parseTaskId(id);
   const task = useTask(taskId);
+  const failure = useRetry(task);
 
   if (taskId === null) {
     return <TaskNotFound />;
@@ -148,8 +150,8 @@ export function TaskPage() {
   if (task.data !== undefined) {
     return <TaskView task={task.data} />;
   }
-  if (task.isError) {
-    const { error } = task;
+  if (failure.error !== null) {
+    const { error } = failure;
     if (error instanceof ApiRequestError) {
       if (error.status === 404) {
         return <TaskNotFound />;
@@ -166,7 +168,13 @@ export function TaskPage() {
           <p className="task-page__error-text">
             {error instanceof ApiRequestError ? translateApiError(t, error) : t('errors:unknown')}
           </p>
-          <Button variant="light" color="red" size="xs" onClick={() => void task.refetch()}>
+          <Button
+            variant="light"
+            color="red"
+            size="xs"
+            loading={failure.retrying}
+            onClick={() => void failure.retry()}
+          >
             {t('common:retry')}
           </Button>
         </Alert>

@@ -1,10 +1,17 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setCsrfToken } from '../../api/client';
 import { formatDateTime } from '../../i18n/format';
 import { errorResponse, makeMe, mockResponse } from '../../test/http';
 import { renderApp } from '../../test/renderApp';
-import { ANNA, DMITRY, EVENT_FIXTURES, makeEvent, makeTaskDetail } from '../../test/taskDetail';
+import {
+  ANNA,
+  DMITRY,
+  EVENT_FIXTURES,
+  makeEvent,
+  makeTaskDetail,
+  TASK_PAGE_TABLE,
+} from '../../test/taskDetail';
 
 beforeEach(() => {
   setCsrfToken(null);
@@ -176,6 +183,61 @@ describe('activity history', () => {
     await userEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Anna K. created the task')).toBeInTheDocument();
     expect(historyCalls(fetchMock)).toHaveLength(2);
+  });
+
+  it('shows the Retry button as loading while the history is asked for again', async () => {
+    let calls = 0;
+    /** @type {(response: ReturnType<typeof mockResponse>) => void} */
+    let release = () => {};
+    renderApp('/tasks/42', {
+      table: {
+        'GET /api/tasks/42': mockResponse(200, makeTaskDetail()),
+        'GET /api/tasks/42/history': () => {
+          calls += 1;
+          return calls === 1
+            ? errorResponse(403, 'forbidden')
+            : new Promise((resolve) => {
+                release = resolve;
+              });
+        },
+      },
+    });
+    await userEvent.click(await toggle());
+    const alert = await screen.findByRole('alert');
+    await userEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+    await waitFor(() =>
+      expect(within(alert).getByRole('button', { name: 'Try again' })).toHaveAttribute(
+        'data-loading',
+        'true',
+      ),
+    );
+    release(mockResponse(200, { events: [makeEvent('task_created')] }));
+    expect(await screen.findByText('Anna K. created the task')).toBeInTheDocument();
+  });
+
+  it('starts collapsed and unrequested again when another task is opened', async () => {
+    const { router, fetchMock } = renderApp('/tasks/42', {
+      table: {
+        ...TASK_PAGE_TABLE,
+        'GET /api/tasks/42/history': mockResponse(200, { events: [makeEvent('task_created')] }),
+        'GET /api/tasks/5/history': mockResponse(200, { events: [makeEvent('task_picked_up')] }),
+      },
+    });
+    const button = await toggle();
+    await userEvent.click(button);
+    expect(await screen.findByText('Anna K. created the task')).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate('/tasks/5');
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/tasks/5', expect.anything()));
+    const next = await toggle();
+    await waitFor(() => expect(next).toHaveAttribute('aria-expanded', 'false'));
+    expect(screen.queryByText('Anna K. created the task')).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/tasks/5/history')).toHaveLength(0);
+
+    await userEvent.click(next);
+    expect(await screen.findByText('Anna K. picked up the task')).toBeInTheDocument();
   });
 
   it('shows the timeline in Russian', async () => {

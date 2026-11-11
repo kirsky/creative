@@ -1,0 +1,12 @@
+// The buttons at the end of the main column, where the wireframe puts Approve / Request revisions.
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+
+  // Cancel task is set apart from the buttons that move the work forward.
+  &__danger {
+    margin-inline-start: auto;
+  }
+}

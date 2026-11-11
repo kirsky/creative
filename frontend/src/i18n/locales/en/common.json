@@ -37,6 +37,7 @@
     "CIS": "CIS"
   },
   "cancel": "Cancel",
+  "close": "Close",
   "retry": "Try again",
   "fileSize": {
     "bytes": "{{value}} B",

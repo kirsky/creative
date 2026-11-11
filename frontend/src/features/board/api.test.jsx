@@ -71,6 +71,7 @@ describe('usePickUp', () => {
 
     await act(() => result.current.mutateAsync(7));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['board'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['task', 7] });
 
     invalidate.mockClear();
