@@ -5,6 +5,16 @@ import {
   providerColor,
 } from './providerColors';
 
+describe('PROVIDER_PALETTE', () => {
+  it('has no colour twice', () => {
+    expect(new Set(PROVIDER_PALETTE).size).toBe(PROVIDER_PALETTE.length);
+  });
+
+  it('takes its first colour from the brand palette', () => {
+    expect(PROVIDER_PALETTE).toContain('var(--mantine-color-aurora-6)');
+  });
+});
+
 describe('providerColor', () => {
   it('gives a provider a colour from the palette', () => {
     expect(PROVIDER_PALETTE).toContain(providerColor('Runway'));

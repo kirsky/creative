@@ -47,9 +47,10 @@
   gap: 0.125rem;
   min-width: 0;
   padding: var(--mantine-spacing-sm);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-md);
-  background-color: var(--mantine-color-body);
+  border: 1px solid var(--app-border);
+  border-radius: var(--mantine-radius-lg);
+  background-color: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
 
   // Overdue work is the one figure that asks for action.
   &[data-danger='true'] {
@@ -62,6 +63,25 @@
     margin: 0;
     color: var(--app-text-muted);
     font-size: var(--mantine-font-size-sm);
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__icon {
+    display: inline-flex;
+    padding: 0.3rem;
+    border-radius: var(--mantine-radius-md);
+    background-color: var(--mantine-primary-color-light);
+    color: var(--mantine-primary-color-light-color);
+  }
+
+  &[data-danger='true'] &__icon {
+    background-color: transparent;
+    color: var(--app-danger-text);
   }
 
   &__value {
@@ -82,10 +102,11 @@
   flex-direction: column;
   gap: var(--mantine-spacing-xs);
   min-width: 0;
-  padding: var(--mantine-spacing-sm);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-md);
-  background-color: var(--mantine-color-body);
+  padding: var(--mantine-spacing-md);
+  border: 1px solid var(--app-border);
+  border-radius: var(--mantine-radius-lg);
+  background-color: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
 
   &[data-danger='true'] {
     border-color: var(--mantine-color-red-filled);
@@ -94,7 +115,7 @@
   &__title {
     margin: 0;
     font-size: var(--mantine-font-size-lg);
-    font-weight: 600;
+    font-weight: 700;
   }
 
   &__note,

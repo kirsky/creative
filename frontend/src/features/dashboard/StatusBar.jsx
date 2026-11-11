@@ -11,9 +11,9 @@ const BAR_STATUSES = ['new', 'in_progress', 'under_review', 'revisions_required'
 const STATUS_COLORS = /** @type {Record<string, string>} */ ({
   new: 'var(--mantine-color-gray-5)',
   in_progress: 'var(--mantine-color-blue-5)',
-  under_review: 'var(--mantine-color-yellow-5)',
+  under_review: 'var(--mantine-color-violet-5)',
   revisions_required: 'var(--mantine-color-orange-5)',
-  completed: 'var(--mantine-color-green-5)',
+  completed: 'var(--mantine-color-teal-5)',
   cancelled: 'var(--mantine-color-gray-7)',
 });
 

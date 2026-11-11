@@ -11,7 +11,7 @@ export const PROVIDER_PALETTE = [
   'var(--mantine-color-cyan-6)',
   'var(--mantine-color-pink-6)',
   'var(--mantine-color-lime-6)',
-  'var(--mantine-color-indigo-6)',
+  'var(--mantine-color-aurora-6)',
 ];
 
 /** The providers the system starts with. A test checks that their colours differ. */

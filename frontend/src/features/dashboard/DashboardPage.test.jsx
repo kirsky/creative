@@ -372,6 +372,19 @@ describe('a full dashboard', () => {
   });
 });
 
+describe('stat tiles', () => {
+  it('gives every tile a decorative icon and keeps its test id and dt/dd structure', async () => {
+    renderDashboard();
+    await tile('total');
+    for (const key of ['total', 'active', 'overdue', 'cycle', 'ai']) {
+      const element = screen.getByTestId(`tile-${key}`);
+      expect(element.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+      expect(element.querySelector('dt')).not.toBeNull();
+      expect(element.querySelector('dd')).not.toBeNull();
+    }
+  });
+});
+
 describe('nothing to show yet', () => {
   it('shows zeros, dashes and "No data", never NaN or undefined', async () => {
     renderDashboard({ dashboard: makeEmptyDashboard() });
