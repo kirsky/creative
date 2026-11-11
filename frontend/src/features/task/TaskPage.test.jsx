@@ -283,6 +283,19 @@ describe('Facts groups', () => {
     expect(await group('Time')).toBeInTheDocument();
   });
 
+  it('keeps every term inside a valid definition list (dt and dd as a pair in a dl)', async () => {
+    renderTask(REVIEW_TASK);
+    const panel = await region('Facts');
+    const terms = panel.querySelectorAll('dt');
+    expect(terms.length).toBeGreaterThan(0);
+    for (const term of terms) {
+      const parent = /** @type {HTMLElement} */ (term.parentElement);
+      const list = parent.tagName === 'DL' ? parent : parent.parentElement;
+      expect(list?.tagName).toBe('DL');
+      expect(term.nextElementSibling?.tagName).toBe('DD');
+    }
+  });
+
   it('names the creator and the assignee with a decorative avatar each', async () => {
     renderTask(REVIEW_TASK);
     const people = await group('People');

@@ -241,6 +241,12 @@
     text-transform: uppercase;
   }
 
+  &__people {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+  }
+
   &__facts {
     display: flex;
     flex-direction: column;
@@ -276,7 +282,7 @@
     gap: 0.35rem;
     padding: 0.3rem 0.6rem;
     border-radius: var(--mantine-radius-md);
-    background-color: var(--mantine-color-default-hover);
+    background-color: var(--app-tile-bg);
 
     &[data-overdue='true'] {
       background-color: var(--mantine-color-red-light);
@@ -294,7 +300,7 @@
   &__tile {
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
     border-radius: var(--mantine-radius-md);
-    background-color: var(--mantine-color-default-hover);
+    background-color: var(--app-tile-bg);
 
     dt {
       display: flex;

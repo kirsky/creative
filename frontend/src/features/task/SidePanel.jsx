@@ -98,10 +98,10 @@ function Person({ label, name, highlight = false }) {
         aria-hidden="true"
         {...(highlight ? { variant: 'gradient' } : { variant: 'light', color: 'gray' })}
       />
-      <div>
+      <dl className="task-side__facts">
         <dt>{label}</dt>
         <dd>{name}</dd>
-      </div>
+      </dl>
     </div>
   );
 }
@@ -139,19 +139,19 @@ export function SidePanel({ task }) {
       </h2>
 
       <FactGroup title={t('side.groups.people')}>
-        <dl className="task-side__facts">
+        <div className="task-side__people">
           <Person label={t('side.createdBy')} name={task.createdBy.displayName} />
           {task.assignee === null ? (
             <div className="task-side__person">
-              <div>
+              <dl className="task-side__facts">
                 <dt>{t('side.assignedTo')}</dt>
                 <dd>{t('side.unassigned')}</dd>
-              </div>
+              </dl>
             </div>
           ) : (
             <Person label={t('side.assignedTo')} name={task.assignee.displayName} highlight />
           )}
-        </dl>
+        </div>
       </FactGroup>
 
       <FactGroup title={t('side.groups.schedule')}>

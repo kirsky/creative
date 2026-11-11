@@ -20,7 +20,8 @@ export const BRAND_GLOW = { from: '#7c5cff', to: '#3b82f6' };
  * @typedef {object} Surface
  * @property {string} page the page base colour
  * @property {string} card solid card background
- * @property {string} column board column background: a faint brand tint, so cards stand out on it
+ * @property {string} column board column background: a solid, faintly violet surface (solid, so the page glow behind it cannot lower text contrast)
+ * @property {string} tile small stat tiles and chips inside a card
  * @property {string} text
  * @property {string} muted secondary text
  * @property {string} dangerText overdue and error text: readable on page, card and a red tile
@@ -34,7 +35,8 @@ export const SURFACES = {
   light: {
     page: '#f4f5fb',
     card: '#ffffff',
-    column: 'rgba(119, 88, 245, 0.07)',
+    column: '#eeecfb',
+    tile: '#eef0f8',
     text: '#161a2b',
     muted: '#5b6280',
     dangerText: '#b91c1c',
@@ -45,7 +47,8 @@ export const SURFACES = {
   dark: {
     page: '#0d1018',
     card: '#161a26',
-    column: 'rgba(124, 92, 255, 0.1)',
+    column: '#111626',
+    tile: '#1c2236',
     text: '#e8eaf4',
     muted: '#9aa0bd',
     dangerText: '#fca5a5',
@@ -78,6 +81,7 @@ function schemeVariables(surface) {
     '--app-page-bg': pageBackground(surface),
     '--app-card-bg': surface.card,
     '--app-column-bg': surface.column,
+    '--app-tile-bg': surface.tile,
     '--app-surface': surface.card,
     '--app-card-shadow': surface.shadow,
     '--app-brand-gradient': `linear-gradient(135deg, ${BRAND_GRADIENT.from}, ${BRAND_GRADIENT.to})`,

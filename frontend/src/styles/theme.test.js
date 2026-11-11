@@ -33,6 +33,7 @@ const APP_VARIABLES = [
   '--app-page-bg',
   '--app-card-bg',
   '--app-column-bg',
+  '--app-tile-bg',
   '--app-card-shadow',
   '--app-brand-gradient',
   '--app-on-brand',
@@ -81,7 +82,7 @@ describe('contrast of the tokens (WCAG AA, 4.5:1)', () => {
     (scheme) => {
       const s = SURFACES[scheme];
       const redTile = tint(RED, s.card, 0.1);
-      for (const background of [s.page, s.card]) {
+      for (const background of [s.page, s.card, s.column, s.tile]) {
         expect(contrast(s.text, background)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(s.muted, background)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(s.dangerText, background)).toBeGreaterThanOrEqual(4.5);
