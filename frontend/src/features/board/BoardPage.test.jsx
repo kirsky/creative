@@ -133,7 +133,7 @@ describe('layout', () => {
     expect(screen.getByRole('combobox', { name: 'Тип креатива' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Дизайнер' })).toBeInTheDocument();
     expect(screen.getByText('Нужна ваша проверка')).toBeInTheDocument();
-    expect(screen.getByText('Возвращена, нужны правки (освобождена)')).toBeInTheDocument();
+    expect(screen.getByText('Ждёт правок (освобождена)')).toBeInTheDocument();
     expect(
       within(screen.getByRole('region', { name: 'Нужны правки 0' })).getByText('Нет задач'),
     ).toBeVisible();

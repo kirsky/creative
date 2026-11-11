@@ -17,7 +17,7 @@
     "title": "{{offer}} · {{geo}} · {{type}} ×{{quantity}}",
     "label": "Задача",
     "backToBoard": "Назад к доске",
-    "backToMyWork": "Назад к моим задачам",
+    "backToMyWork": "Назад к моей работе",
     "due": "Срок {{date}}",
     "overdue": "Просрочено на {{duration}}",
     "notFound": {
@@ -71,7 +71,7 @@
     "queueWait": "Время в очереди",
     "cycleTime": "Время цикла",
     "reviewTime": "Время проверки",
-    "revisionTurnaround": "Время правок",
+    "revisionTurnaround": "Время на правки",
     "aiCredits": "Кредиты ИИ",
     "elapsedNote": "Прошедшее время, а не затраченные часы.",
     "previousAssignees": "Прежние исполнители",
@@ -122,7 +122,7 @@
     "title": "Новая задача",
     "sections": {
       "basics": "Основное",
-      "target": "Цель",
+      "target": "Таргетинг",
       "details": "Детали",
       "deadline": "Дедлайн",
       "references": "Референсы"
@@ -230,7 +230,7 @@
     },
     "cancelDialog": {
       "title": "Отменить задачу?",
-      "message": "Задача будет отменена и исчезнет с доски. Это нельзя отменить.",
+      "message": "Задача будет отменена и исчезнет с доски. Это действие необратимо.",
       "confirm": "Отменить задачу",
       "keep": "Оставить задачу",
       "success": "Задача отменена."

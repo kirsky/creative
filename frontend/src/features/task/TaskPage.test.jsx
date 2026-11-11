@@ -439,7 +439,7 @@ describe('language', () => {
     expect(term('Время в очереди').textContent).toBe('3 ч 10 мин');
     expect(term('Время цикла').textContent).toBe('1 д 4 ч');
     expect(term('Время проверки').textContent).toBe('1 ч 30 мин');
-    expect(term('Время правок').textContent).toBe('2 ч');
+    expect(term('Время на правки').textContent).toBe('2 ч');
     expect(term('Кредиты ИИ').textContent).toBe('220,00');
     expect(term('Дедлайн').textContent).toBe(formatDateTime('2099-11-12T12:00:00Z', 'ru'));
     expect(within(panel).getByText('Прошедшее время, а не затраченные часы.')).toBeInTheDocument();

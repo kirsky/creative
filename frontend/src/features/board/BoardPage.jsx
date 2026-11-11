@@ -155,7 +155,7 @@ export function BoardPage() {
   const offerOf = (active) => tasksById.get(Number(active.id))?.offer ?? '';
   /** @type {import('@dnd-kit/core').Announcements} */
   const announcements = {
-    onDragStart: ({ active }) => t('board:dnd.pickedUp', { offer: offerOf(active) }),
+    onDragStart: ({ active }) => t('board:dnd.lifted', { offer: offerOf(active) }),
     onDragOver: ({ active, over }) =>
       over === null
         ? t('board:dnd.overNothing', { offer: offerOf(active) })

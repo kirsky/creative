@@ -48,8 +48,8 @@
     "title": "Could not load the board"
   },
   "dnd": {
-    "instructions": "To pick up this task by keyboard, press Space or Enter on the handle. Press the right arrow to move to the In progress column, then Space or Enter to drop. Press Escape to cancel.",
-    "pickedUp": "Picked up {{offer}}.",
+    "instructions": "To move this task by keyboard, press Space or Enter on the handle. Press the right arrow to move to the In progress column, then Space or Enter to drop. Press Escape to cancel.",
+    "lifted": "Lifted {{offer}}.",
     "overTarget": "{{offer}} is over the In progress column. Drop it to take the task.",
     "overNothing": "{{offer}} is not over a column where it can be dropped.",
     "dropped": "{{offer}} was dropped on the In progress column.",

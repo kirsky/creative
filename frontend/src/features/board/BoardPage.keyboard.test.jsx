@@ -57,7 +57,7 @@ describe('dragging with the keyboard', () => {
     const handle = await screen.findByRole('button', { name: 'Drag Vulkan Bet to In progress' });
     handle.focus();
     await userEvent.keyboard(' ');
-    await screen.findByText('Picked up Vulkan Bet.', { selector: '[id^=DndLiveRegion]' });
+    await screen.findByText('Lifted Vulkan Bet.', { selector: '[id^=DndLiveRegion]' });
     await userEvent.keyboard('{ArrowRight}');
     await screen.findByText(/over the In progress column/, { selector: '[id^=DndLiveRegion]' });
     await userEvent.keyboard(' ');
