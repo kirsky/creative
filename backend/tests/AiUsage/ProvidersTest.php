@@ -126,21 +126,28 @@ final class ProvidersTest extends AiUsageTestCase
 
     public function test_a_lost_creation_race_resolves_to_the_winner(): void
     {
-        $other = new Database($this->config);
-        $repository = new AiProviderRepository($other);
+        // The loser runs in a REPEATABLE READ transaction, whose snapshot is taken before the winner
+        // commits. That is what forces the duplicate-key branch deterministically: the loser's plain
+        // find() cannot see the winner's row, so it goes on to INSERT, fails on the UNIQUE key
+        // (1062), and must recover by reading the row again with a locking read.
+        $loser = new Database($this->config);
+        $repository = new AiProviderRepository($loser);
 
-        $other->transaction(function () use ($other, $repository): void {
-            // A second connection has read the list while "Pika" does not exist...
-            $other->pdo()->query('SELECT COUNT(*) FROM ai_providers');
-            self::assertNotFalse($other->pdo()->query('SELECT COUNT(*) FROM ai_providers'));
+        $loser->transaction(function () use ($loser, $repository): void {
+            self::assertNotFalse($loser->pdo()->query('SELECT COUNT(*) FROM ai_providers'));
 
-            // ...the winner creates and commits it...
             $winner = $this->provider('Pika');
 
-            // ...and the loser's INSERT fails on the unique key; it ends up with the winner's row, not an error.
+            // Precondition: the snapshot really hides the winner, so find() misses.
+            $hidden = $loser->pdo()->query("SELECT COUNT(*) FROM ai_providers WHERE name = 'pika'");
+            self::assertNotFalse($hidden);
+            self::assertEquals(0, $hidden->fetchColumn(), 'the loser must not see the winner through its snapshot');
+
+            // The case differs, as it would for two designers typing the name.
             self::assertSame(['id' => $winner, 'name' => 'Pika'], $repository->resolve('pika'));
-        }, readCommitted: true);
+        });
 
         self::assertSame(1, $this->countRows('ai_providers'));
+        self::assertSame(['Pika'], array_column($this->fetchRows('SELECT name FROM ai_providers'), 'name'));
     }
 }
