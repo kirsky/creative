@@ -1,5 +1,5 @@
-// The designer's My work page. Colours come from Mantine's scheme-aware variables, so light and
-// dark both work.
+// The designer's My work page. Colours come from the theme tokens (--app-*, see styles/theme.js) and
+// Mantine's variables, so light and dark both work.
 .my-work {
   display: flex;
   flex-direction: column;

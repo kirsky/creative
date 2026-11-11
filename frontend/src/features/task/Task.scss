@@ -1,4 +1,5 @@
-// The task page. Colours come from Mantine's scheme-aware variables, so light and dark both work.
+// The task page. Colours come from the theme tokens (--app-*, see styles/theme.js) and
+// Mantine's variables, so light and dark both work.
 .task-page {
   display: flex;
   flex-direction: column;

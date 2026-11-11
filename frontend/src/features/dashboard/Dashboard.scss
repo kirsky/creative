@@ -1,5 +1,5 @@
-// The manager dashboard. Colours come from Mantine's scheme-aware variables, so light and dark
-// both work.
+// The manager dashboard. Colours come from the theme tokens (--app-*, see styles/theme.js) and
+// Mantine's variables, so light and dark both work.
 .dashboard {
   display: flex;
   flex-direction: column;
@@ -246,7 +246,7 @@
   padding: var(--mantine-spacing-xs);
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
-  background-color: var(--mantine-color-body);
+  background-color: var(--app-card-bg);
   box-shadow: var(--mantine-shadow-md);
   font-size: var(--mantine-font-size-sm);
 
