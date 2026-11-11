@@ -131,7 +131,7 @@ function TaskView({ task }) {
         </div>
         <SidePanel task={task} />
       </div>
-      <HistoryPanel key={task.id} taskId={task.id} />
+      <HistoryPanel taskId={task.id} />
     </div>
   );
 }
@@ -148,7 +148,9 @@ export function TaskPage() {
     return <TaskNotFound />;
   }
   if (task.data !== undefined) {
-    return <TaskView task={task.data} />;
+    // Keyed by task: state of the page (open dialogs, their forms, the history) never carries over
+    // to another task, even one whose data is cached and so shows at once.
+    return <TaskView key={task.data.id} task={task.data} />;
   }
   if (failure.error !== null) {
     const { error } = failure;

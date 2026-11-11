@@ -49,6 +49,8 @@ export function ConfirmDialog({
     }
     const found = textProblem(text);
     setProblem(found);
+    // An error of the server belongs to the text sent now, so it shows until the text is edited.
+    setEdited(false);
     if (found === null) {
       onConfirm(text.trim());
     }

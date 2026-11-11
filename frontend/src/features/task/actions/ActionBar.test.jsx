@@ -499,6 +499,145 @@ describe('release', () => {
   });
 });
 
+describe('server problems with the text of a dialog', () => {
+  const invalidText = (/** @type {string} */ field) =>
+    errorResponse(422, 'validation_failed', {
+      fields: [{ field, code: 'too_long', params: { max: 2000 } }],
+    });
+  const TOO_LONG = 'Must be at most 2000 characters';
+
+  it.each([
+    ['Approve', 'approve', 'note', 'Comment (optional)', 'Approve'],
+    ['Cancel task', 'cancel', 'reason', 'Reason (optional)', 'Cancel task'],
+  ])(
+    'shows a 422 on the text of %s next to the textarea until it is edited',
+    async (button, action, field, label, confirm) => {
+      renderTask(
+        { status: 'under_review', assignee: ANNA, rounds: [OPEN_ROUND], allowedActions: [action] },
+        { table: { [`POST /api/tasks/42/${action}`]: invalidText(field) } },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: button }));
+      const dialog = await screen.findByRole('dialog');
+      const text = within(dialog).getByLabelText(label);
+      await userEvent.type(text, 'Some text');
+      await userEvent.click(within(dialog).getByRole('button', { name: confirm }));
+
+      expect(await within(dialog).findByText(TOO_LONG)).toBeInTheDocument();
+      expect(text).toBeInvalid();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      await userEvent.type(text, '!');
+      expect(within(dialog).queryByText(TOO_LONG)).not.toBeInTheDocument();
+      expect(text).toBeValid();
+    },
+  );
+
+  it('shows the error again when the same text is sent again', async () => {
+    renderTask(
+      { status: 'under_review', assignee: ANNA, rounds: [OPEN_ROUND], allowedActions: ['approve'] },
+      { table: { 'POST /api/tasks/42/approve': invalidText('note') } },
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Comment (optional)'), 'Some text');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Approve' }));
+    expect(await within(dialog).findByText(TOO_LONG)).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText('Comment (optional)'), '!');
+    expect(within(dialog).queryByText(TOO_LONG)).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Approve' }));
+    expect(await within(dialog).findByText(TOO_LONG)).toBeInTheDocument();
+  });
+
+  it('shows a 422 on the reason of Request revisions until it is edited', async () => {
+    renderTask(
+      {
+        status: 'under_review',
+        assignee: ANNA,
+        rounds: [OPEN_ROUND],
+        allowedActions: ['request_revisions'],
+      },
+      { table: { 'POST /api/tasks/42/request-revisions': invalidText('reason') } },
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Request revisions' }));
+    const dialog = await screen.findByRole('dialog');
+    const reason = within(dialog).getByLabelText(/^Reason for revisions/);
+    await userEvent.type(reason, 'Bigger logo');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Request revisions' }));
+    expect(await within(dialog).findByText(TOO_LONG)).toBeInTheDocument();
+    expect(reason).toBeInvalid();
+    await userEvent.type(reason, '!');
+    await waitFor(() => expect(within(dialog).queryByText(TOO_LONG)).not.toBeInTheDocument());
+  });
+});
+
+describe('another task opened while a dialog is open', () => {
+  it.each([
+    [
+      'Submit work',
+      DESIGNER,
+      { status: 'in_progress', assignee: ANNA, allowedActions: ['submit'] },
+      'POST /api/tasks/5/rounds',
+    ],
+    [
+      'Request revisions',
+      BUYER,
+      {
+        status: 'under_review',
+        assignee: ANNA,
+        rounds: [OPEN_ROUND],
+        allowedActions: ['request_revisions'],
+      },
+      'POST /api/tasks/5/request-revisions',
+    ],
+  ])(
+    'drops the open %s dialog and sends nothing to the new task',
+    async (button, me, task, post) => {
+      const detail = (/** @type {number} */ id) =>
+        mockResponse(200, makeTaskDetail({ .../** @type {any} */ (task), id }));
+      const { router, fetchMock } = renderApp('/tasks/5', {
+        me: me(),
+        table: {
+          'GET /api/tasks/5': detail(5),
+          'GET /api/tasks/42': detail(42),
+          'GET /api/ai-providers': mockResponse(200, { providers: [] }),
+          [post]: mockResponse(200, {}),
+          [post.replace('/5/', '/42/')]: mockResponse(200, {}),
+        },
+      });
+      // Task 5 is loaded (and so cached) first.
+      await screen.findByRole('button', { name: button });
+      await act(async () => {
+        await router.navigate('/tasks/42');
+      });
+      await userEvent.click(await screen.findByRole('button', { name: button }));
+      const dialog = await screen.findByRole('dialog');
+      const field = within(dialog).getByRole('textbox', {
+        name: /^(Note for the buyer|Reason for revisions)/,
+      });
+      await userEvent.type(field, 'Text for task 42');
+
+      // Back to task 5, whose data is cached: the page shows it at once.
+      await act(async () => {
+        await router.navigate('/tasks/5');
+      });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByRole('button', { name: button })).toBeInTheDocument();
+      expect(
+        fetchMock.mock.calls.filter(
+          ([url]) => url.startsWith('/api/tasks/5/') && url !== '/api/tasks/5/history',
+        ),
+      ).toHaveLength(0);
+
+      // The new task's dialog starts empty.
+      await userEvent.click(screen.getByRole('button', { name: button }));
+      const fresh = await screen.findByRole('dialog');
+      expect(
+        within(fresh).getByRole('textbox', { name: /^(Note for the buyer|Reason for revisions)/ }),
+      ).toHaveValue('');
+    },
+  );
+});
+
 describe('keyboard', () => {
   it('closes a dialog with Escape and gives the focus back to its button', async () => {
     renderTask({ status: 'new', allowedActions: ['cancel'] });
