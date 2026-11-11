@@ -1,6 +1,15 @@
 import { Badge, Button, VisuallyHidden } from '@mantine/core';
+import {
+  ArrowsClockwise,
+  ArrowUUpLeft,
+  CalendarBlank,
+  HandGrabbing,
+  MagnifyingGlass,
+  UserCircle,
+} from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { Icon } from '../../components/Icon';
 import {
   formatCountry,
   formatCredits,
@@ -8,6 +17,7 @@ import {
   formatDeadline,
   formatDuration,
 } from '../../i18n/format';
+import { PRIORITY_ICON, STATUS_ICONS } from '../task/taskIcons';
 
 /** @typedef {import('../../i18n/detect').Language} Language */
 
@@ -105,11 +115,24 @@ export function TaskCard({
       </p>
 
       <div className="task-card__meta">
-        <Badge size="sm" variant="light" color={PRIORITY_COLORS[task.priority] ?? 'gray'}>
+        <Badge
+          size="sm"
+          variant="light"
+          color={PRIORITY_COLORS[task.priority] ?? 'gray'}
+          leftSection={<Icon icon={PRIORITY_ICON} size={12} weight="fill" />}
+        >
           {t(`task:priorities.${task.priority}`, { defaultValue: task.priority })}
         </Badge>
         {showStatus && (
-          <Badge size="sm" variant="outline" color="gray" data-testid="task-card-status">
+          <Badge
+            size="sm"
+            variant="outline"
+            color="gray"
+            data-testid="task-card-status"
+            leftSection={
+              STATUS_ICONS[task.status] && <Icon icon={STATUS_ICONS[task.status]} size={12} />
+            }
+          >
             {t(`board:card.status.${task.status}`)}
           </Badge>
         )}
@@ -120,6 +143,7 @@ export function TaskCard({
             data-overdue={task.isOverdue ? 'true' : undefined}
             title={formatDateTime(task.deadlineAt, lng)}
           >
+            <Icon icon={CalendarBlank} size={14} />
             {task.isOverdue
               ? t('board:card.overdue', {
                   duration: formatDuration(secondsLate(task.deadlineAt), t),
@@ -133,11 +157,13 @@ export function TaskCard({
         <p className="task-card__work">
           {task.assignee !== null && (
             <span className="task-card__assignee" data-testid="task-card-assignee">
+              <Icon icon={UserCircle} size={14} />
               {task.assignee.displayName}
             </span>
           )}
           {task.roundCount > 0 && (
             <span className="task-card__round">
+              <Icon icon={ArrowsClockwise} size={14} />
               {t('board:card.round', { round: task.roundCount })}
               {hasCredits(task.creditsTotal) &&
                 ` · ${t('board:card.credits', { credits: formatCredits(task.creditsTotal, lng) })}`}
@@ -147,17 +173,24 @@ export function TaskCard({
       )}
 
       {task.isReturning && (
-        <p className="task-card__note task-card__note--returning">{t('board:card.returning')}</p>
+        <p className="task-card__note task-card__note--returning">
+          <Icon icon={ArrowUUpLeft} size={14} />
+          {t('board:card.returning')}
+        </p>
       )}
       {needsReview && (
-        <p className="task-card__note task-card__note--review">{t('board:card.needsReview')}</p>
+        <p className="task-card__note task-card__note--review">
+          <Icon icon={MagnifyingGlass} size={14} />
+          {t('board:card.needsReview')}
+        </p>
       )}
 
       {canPickUp && (
         <Button
           className="task-card__action"
           size="compact-sm"
-          variant="light"
+          variant="gradient"
+          leftSection={<Icon icon={HandGrabbing} size={14} />}
           loading={isPickingUp}
           disabled={pickUpDisabled}
           aria-label={t('board:card.pickUpOffer', { offer: task.offer })}

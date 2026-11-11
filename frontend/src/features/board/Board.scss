@@ -59,8 +59,30 @@
   min-width: 15rem;
   padding: var(--mantine-spacing-xs);
   border: 2px solid transparent;
-  border-radius: var(--mantine-radius-md);
+  border-top: 3px solid var(--column-accent, transparent);
+  border-radius: var(--mantine-radius-lg);
   background-color: var(--app-column-bg);
+
+  // Each stage has an accent colour on top of its column.
+  &[data-status='new'] {
+    --column-accent: var(--mantine-color-gray-5);
+  }
+
+  &[data-status='in_progress'] {
+    --column-accent: var(--mantine-color-blue-5);
+  }
+
+  &[data-status='under_review'] {
+    --column-accent: var(--mantine-color-violet-5);
+  }
+
+  &[data-status='revisions_required'] {
+    --column-accent: var(--mantine-color-orange-5);
+  }
+
+  &[data-status='completed'] {
+    --column-accent: var(--mantine-color-teal-5);
+  }
 
   // While a card that can be picked up is dragged, the column that takes it says so.
   &[data-drop-target='true'] {
@@ -77,12 +99,19 @@
     margin: 0;
     padding-inline: var(--mantine-spacing-xs);
     font-size: var(--mantine-font-size-sm);
-    font-weight: 600;
+    font-weight: 700;
   }
 
   &__count {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0 0.4em;
+    border-radius: 999px;
+    background-color: var(--app-card-bg);
     color: var(--app-text-muted);
-    font-weight: 400;
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 600;
+    text-align: center;
   }
 
   // A long column scrolls on its own.
@@ -145,20 +174,35 @@
   display: flex;
   flex-direction: column;
   gap: var(--mantine-spacing-xs);
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-md);
-  background-color: var(--mantine-color-body);
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--app-border);
+  border-radius: var(--mantine-radius-lg);
+  background-color: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
   font-size: var(--mantine-font-size-sm);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover,
   &:focus-within {
-    border-color: var(--mantine-color-dimmed);
+    border-color: var(--mantine-primary-color-filled);
+    transform: translateY(-2px);
+    box-shadow: var(--mantine-shadow-md);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover,
+    &:focus-within {
+      transform: none;
+    }
   }
 
   &[data-needs-review='true'] {
-    border-color: var(--mantine-color-blue-filled);
-    box-shadow: 0 0 0 1px var(--mantine-color-blue-filled);
+    border-color: var(--mantine-primary-color-filled);
+    box-shadow: 0 0 0 1px var(--mantine-primary-color-filled);
   }
 
   &[data-status='cancelled'] {
@@ -194,7 +238,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: var(--mantine-radius-md);
+      border-radius: var(--mantine-radius-lg);
     }
 
     &:focus-visible {
@@ -228,6 +272,9 @@
   }
 
   &__deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     color: var(--app-text-muted);
 
     &[data-overdue='true'] {
@@ -244,29 +291,33 @@
     color: var(--app-text-muted);
   }
 
-  &__assignee::before {
-    content: '● ';
-    font-size: 0.7em;
+  &__assignee,
+  &__round {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
-  &__round:not(:first-child)::before {
-    content: '· ';
-  }
-
+  // A tinted pill: the card is waiting for a designer to take the revision, or for a review.
   &__note {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.3rem;
     margin: 0;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: var(--mantine-font-size-xs);
     font-weight: 600;
 
     &--returning {
+      background-color: var(--mantine-color-orange-light);
       color: var(--mantine-color-orange-light-color);
-
-      &::before {
-        content: '↩ ';
-      }
     }
 
     &--review {
-      color: var(--mantine-color-blue-light-color);
+      background-color: var(--mantine-primary-color-light);
+      color: var(--mantine-primary-color-light-color);
     }
   }
 

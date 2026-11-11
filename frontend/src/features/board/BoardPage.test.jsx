@@ -486,6 +486,9 @@ describe('roles', () => {
     const handles = screen.getAllByRole('button', { name: /^Drag/ });
     expect(handles).toHaveLength(1);
     expect(handles[0]).toHaveAccessibleName('Drag Pool Offer to In progress');
+    // The grip is an icon: hidden from assistive technology, so the button's name is its label.
+    expect(handles[0].querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(handles[0]).toHaveTextContent('');
     expect(within(await column('In progress 1')).queryByRole('button')).toBeNull();
   });
 

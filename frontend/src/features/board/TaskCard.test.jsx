@@ -133,6 +133,23 @@ describe('TaskCard states', () => {
     expect(card()).toHaveTextContent('Revision pending (released)');
   });
 
+  it('shows the revision-pending marker with a decorative icon next to the text', () => {
+    renderCard(makeTask({ isReturning: true }));
+    const note = screen.getByText('Revision pending (released)');
+    expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(note).toHaveTextContent(/^Revision pending \(released\)$/);
+  });
+
+  it('gives the deadline and the assignee decorative icons', () => {
+    renderCard(makeTask({ assignee: { id: 5, displayName: 'Anna K.' } }));
+    expect(
+      screen.getByTestId('task-card-deadline').querySelector('svg[aria-hidden="true"]'),
+    ).not.toBeNull();
+    expect(
+      screen.getByTestId('task-card-assignee').querySelector('svg[aria-hidden="true"]'),
+    ).not.toBeNull();
+  });
+
   it('has no such marker otherwise', () => {
     renderCard(makeTask());
     expect(card()).not.toHaveTextContent('Revision pending');

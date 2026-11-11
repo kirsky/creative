@@ -1,5 +1,7 @@
 import { Button, Checkbox, Select, TextInput } from '@mantine/core';
+import { Flag, MagnifyingGlass, Shapes, UserCircle, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../components/Icon';
 import { hasFilters } from './filters';
 
 /**
@@ -55,6 +57,7 @@ export function BoardFilters({
         className="board-filters__search"
         aria-label={t('board:filters.search')}
         placeholder={t('board:filters.search')}
+        leftSection={<Icon icon={MagnifyingGlass} size={16} />}
         value={search}
         onChange={(event) => onSearchChange(event.currentTarget.value)}
         maxLength={100}
@@ -63,6 +66,7 @@ export function BoardFilters({
         className="board-filters__select"
         aria-label={priorityLabel}
         placeholder={priorityLabel}
+        leftSection={<Icon icon={Flag} size={16} />}
         data={priorities}
         value={filters.priority ?? null}
         onChange={(value) => onFilterChange({ priority: value ?? undefined })}
@@ -72,6 +76,7 @@ export function BoardFilters({
         className="board-filters__select"
         aria-label={typeLabel}
         placeholder={typeLabel}
+        leftSection={<Icon icon={Shapes} size={16} />}
         data={creativeTypes}
         value={filters.creativeType ?? null}
         onChange={(value) => onFilterChange({ creativeType: value ?? undefined })}
@@ -81,6 +86,7 @@ export function BoardFilters({
         className="board-filters__select"
         aria-label={designerLabel}
         placeholder={designerLabel}
+        leftSection={<Icon icon={UserCircle} size={16} />}
         data={designerOptions}
         value={filters.designerId === undefined ? null : String(filters.designerId)}
         onChange={(value) =>
@@ -89,7 +95,12 @@ export function BoardFilters({
         clearable
       />
       {isFiltered && (
-        <Button variant="subtle" size="compact-sm" onClick={onClearAll}>
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          leftSection={<Icon icon={X} size={14} />}
+          onClick={onClearAll}
+        >
           {t('board:filters.clearAll')}
         </Button>
       )}

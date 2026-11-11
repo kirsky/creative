@@ -1,26 +1,14 @@
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Skeleton } from '@mantine/core';
+import { DotsSixVertical } from '@phosphor-icons/react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../components/Icon';
 import { canDrag, IN_PROGRESS_COLUMN, resolveDrop } from './dragDrop';
 import { TaskCard } from './TaskCard';
 
 /** How many placeholder cards a column shows while the board loads. */
 const SKELETON_CARDS = 2;
-
-/** The grip a card is dragged by with the keyboard; a pointer can take the whole card. */
-function GripIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
-      <circle cx="5.5" cy="3.5" r="1.3" />
-      <circle cx="10.5" cy="3.5" r="1.3" />
-      <circle cx="5.5" cy="8" r="1.3" />
-      <circle cx="10.5" cy="8" r="1.3" />
-      <circle cx="5.5" cy="12.5" r="1.3" />
-      <circle cx="10.5" cy="12.5" r="1.3" />
-    </svg>
-  );
-}
 
 /**
  * A card a designer may pick up: dragged by pointer anywhere on it (after a few pixels, so a click
@@ -61,7 +49,7 @@ function DraggableTaskCard({ task, onPickUp, isPickingUp, pickUpDisabled }) {
             {...attributes}
             onKeyDown={onKeyDown}
           >
-            <GripIcon />
+            <Icon icon={DotsSixVertical} size={18} weight="bold" />
           </button>
         }
       />
