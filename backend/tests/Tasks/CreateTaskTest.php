@@ -6,11 +6,13 @@ namespace App\Tests\Tasks;
 
 use App\Identity\Role;
 use App\Identity\User;
+use App\Tasks\Geo\GeoCodes;
 use App\Tasks\TaskPolicy;
 use App\Tests\Files\Samples;
 use App\Tests\Support\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\ResponseInterface;
+use Slim\Psr7\Factory\StreamFactory;
 
 /**
  * POST /api/tasks: a buyer writes a brief. The task, its geo, its references, the attached files and
@@ -143,12 +145,21 @@ final class CreateTaskTest extends ApiTestCase
         yield 'deadline words' => [['deadline' => 'tomorrow'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
         yield 'deadline without a zone' => [['deadline' => '2026-01-20T10:00:00'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
         yield 'deadline that is no date' => [['deadline' => '2026-02-30T10:00:00Z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline beyond year 9999 in UTC' => [['deadline' => '9999-12-31T23:59:59-01:00'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline in year 9999' => [['deadline' => '9999-12-31T23:59:59Z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline a second beyond ten years' => [['deadline' => '2036-01-15T09:00:01Z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline on a day that is not a leap day' => [['deadline' => '2027-02-29T10:00:00Z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline with a lower case z' => [['deadline' => '2026-01-20T10:00:00z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline with a lower case t' => [['deadline' => '2026-01-20t10:00:00Z'], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
+        yield 'deadline with a trailing newline' => [['deadline' => "2026-01-20T10:00:00Z\n"], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
         yield 'deadline not a string' => [['deadline' => 1_800_000_000], [], ['field' => 'deadline', 'code' => 'invalid', 'params' => []]];
         yield 'geo empty' => [['geo' => []], [], ['field' => 'geo', 'code' => 'required', 'params' => []]];
         yield 'geo missing' => [[], ['geo'], ['field' => 'geo', 'code' => 'required', 'params' => []]];
         yield 'geo unknown code' => [['geo' => ['US', 'XX']], [], ['field' => 'geo', 'code' => 'invalid_choice', 'params' => []]];
         yield 'geo lower case' => [['geo' => ['us']], [], ['field' => 'geo', 'code' => 'invalid_choice', 'params' => []]];
+        yield 'geo with more than 30 codes' => [['geo' => array_slice(GeoCodes::countries(), 0, 31)], [], ['field' => 'geo', 'code' => 'too_long', 'params' => ['max' => 30]]];
         yield 'geo not a list' => [['geo' => 'US'], [], ['field' => 'geo', 'code' => 'invalid', 'params' => []]];
+        yield 'more than 50 references' => [['references' => array_fill(0, 51, ['type' => 'url', 'url' => 'https://example.com'])], [], ['field' => 'references', 'code' => 'too_long', 'params' => ['max' => 50]]];
         yield 'javascript url' => [['references' => [['type' => 'url', 'url' => 'javascript:alert(1)']]], [], ['field' => 'references.0.url', 'code' => 'invalid_url', 'params' => []]];
         yield 'ftp url' => [['references' => [['type' => 'url', 'url' => 'ftp://example.com/a']]], [], ['field' => 'references.0.url', 'code' => 'invalid_url', 'params' => []]];
         yield 'url without a host' => [['references' => [['type' => 'url', 'url' => 'https://']]], [], ['field' => 'references.0.url', 'code' => 'invalid_url', 'params' => []]];
@@ -159,6 +170,74 @@ final class CreateTaskTest extends ApiTestCase
         yield 'reference file id is not a number' => [['references' => [['type' => 'file', 'fileId' => 'abc']]], [], ['field' => 'references.0.fileId', 'code' => 'invalid', 'params' => []]];
         yield 'references not a list' => [['references' => 'https://example.com'], [], ['field' => 'references', 'code' => 'invalid', 'params' => []]];
         yield 'unknown field' => [['owner' => 7], [], ['field' => 'owner', 'code' => 'unknown_field', 'params' => []]];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}> the deadline sent and the one stored (UTC)
+     */
+    public static function acceptedDeadlines(): iterable
+    {
+        yield 'a leap day' => ['2028-02-29T10:00:00Z', '2028-02-29 10:00:00'];
+        yield 'fractional seconds are cut off' => ['2026-01-20T10:00:00.987654Z', '2026-01-20 10:00:00'];
+        yield 'exactly ten years from now' => ['2036-01-15T09:00:00Z', '2036-01-15 09:00:00'];
+        yield 'an offset' => ['2026-01-20T10:00-05:00', '2026-01-20 15:00:00'];
+    }
+
+    #[DataProvider('acceptedDeadlines')]
+    public function test_accepted_deadlines(string $sent, string $stored): void
+    {
+        $response = $this->create($this->body(['deadline' => $sent]));
+
+        self::assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame($stored, $this->fetchValue('SELECT deadline_at FROM tasks'));
+    }
+
+    /**
+     * @param non-empty-string $json
+     */
+    #[DataProvider('bodiesThatAreNoObject')]
+    public function test_a_body_that_is_no_json_object_is_422(string $json): void
+    {
+        [$token, $csrfToken] = $this->startSession($this->buyer);
+        $request = self::withSession($this->buildRequest('POST', '/api/tasks'), $token, $csrfToken)
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody((new StreamFactory())->createStream($json));
+
+        $response = $this->handle($request);
+
+        self::assertSame(422, $response->getStatusCode(), $json);
+        $this->assertMatchesSpec($response);
+        self::assertSame('validation_failed', self::jsonAt($response, 'error.code'));
+        self::assertSame(0, $this->countRows('tasks'));
+    }
+
+    /**
+     * @return iterable<string, array{non-empty-string}>
+     */
+    public static function bodiesThatAreNoObject(): iterable
+    {
+        yield 'a string' => ['"Лото"'];
+        yield 'a number' => ['42'];
+        yield 'null' => ['null'];
+        yield 'true' => ['true'];
+        yield 'a list' => ['[1,2]'];
+    }
+
+    public function test_the_same_file_twice_in_one_request_is_422(): void
+    {
+        $fileId = $this->uploadFile($this->buyer, 'brief.png');
+
+        $response = $this->create($this->body(['references' => [
+            ['type' => 'file', 'fileId' => $fileId],
+            ['type' => 'file', 'fileId' => $fileId],
+        ]]));
+
+        self::assertSame(422, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertMatchesSpec($response);
+        self::assertSame('validation_failed', self::jsonAt($response, 'error.code'));
+        foreach (['tasks', 'task_geo', 'task_references', 'file_attachments', 'task_events'] as $table) {
+            self::assertSame(0, $this->countRows($table), $table);
+        }
     }
 
     public function test_every_problem_is_reported_at_once(): void

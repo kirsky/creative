@@ -325,11 +325,11 @@ paths:
         Problems are reported all at once as validation_failed with these field codes. `offer`
         (trimmed): required, too_short (params.min 2), too_long (params.max 100). `geo`: required (none
         given), invalid_choice (a code that is neither an ISO 3166-1 alpha-2 country nor a region),
-        invalid (not a list). `creativeType`, `priority`: required, invalid_choice. `quantity`:
+        invalid (not a list), too_long (more than 30 codes, params.max 30). `creativeType`, `priority`: required, invalid_choice. `quantity`:
         required, invalid (not an integer), out_of_range (params.min 1, params.max 100).
         `description`: required, too_long (params.max 10000); it is stored exactly as sent. `deadline`:
-        required; invalid (not an ISO 8601 date-time with a Z or an offset); must_be_future (not after
-        now). `references` (optional, at most 50): each `{type:"url",url}` or `{type:"file",fileId}`;
+        required; invalid (not an ISO 8601 date-time with a Z or an offset, or more than 10 years ahead);
+        must_be_future (not after now). `references` (optional, at most 50, else too_long with params.max 50): each `{type:"url",url}` or `{type:"file",fileId}`;
         the fields are named `references.<index>.<key>`: url required, invalid_url (not http or https,
         or no host), too_long (params.max 2000); type invalid_choice; fileId invalid.
 
@@ -365,6 +365,8 @@ paths:
         designer's tasks gets nothing of them. Cancelled tasks are left out unless includeCancelled=1.
         Empty and unknown parameters are ignored; a known one with an impossible value is 422
         validation_failed (invalid_choice, invalid, too_long).
+      security:
+        - session: []
       parameters:
         - name: priority
           in: query
@@ -376,7 +378,9 @@ paths:
             $ref: '#/components/schemas/CreativeType'
         - name: designerId
           in: query
-          description: Only tasks assigned to this designer.
+          description: >
+            Only tasks assigned to this designer. A positive whole number written without leading
+            zeros; 0, a negative number or anything else is 422 validation_failed (invalid).
           schema:
             type: integer
             minimum: 1
@@ -433,6 +437,58 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '404':
           $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: editTask
+      summary: Edit the brief of a task
+      description: >
+        Only the buyer who created the task, and only while it is not `completed` or `cancelled`.
+        The body is partial: any of offer, geo, creativeType, quantity, description, priority and
+        deadline, at least one, each under the rules of createTask (same codes, same params). Any other
+        field, `references` included, is 422 validation_failed with code unknown_field; a body with no
+        field at all is 422 validation_failed. References cannot be edited. The permission is checked
+        before the body: a task the user may not view (another buyer's, a designer's that is not
+        theirs) or that does not exist is 404 not_found; a designer or a manager who may view it, 403
+        forbidden; the creating buyer on a completed or cancelled task, 409 task_not_editable.
+
+
+        Only fields whose value actually differs from the stored one are changed (compared after
+        normalising: the offer trimmed, geo as a set, the deadline as an instant). The deadline may be
+        sent back unchanged even when it is past already; any other new deadline must be in the
+        future. The changes are one `brief_edited` event with payload
+        `{"changes":[{"field","old","new"}]}` (in the order offer, geo, creativeType, quantity,
+        description, priority, deadline; geo as a sorted list of codes, creativeType and priority as
+        codes, deadline as UTC ISO 8601 with Z), the same rows of the field audit, and the new
+        `updated_at`, in one transaction. When nothing differs nothing is recorded and nothing
+        changes, and the answer is still 200.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditTask'
+      responses:
+        '200':
+          description: The task after the edit, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: task_not_editable. The task is completed or cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
   /api/tasks/{id}/history:
     get:
       operationId: getTaskHistory
@@ -630,6 +686,7 @@ components:
         geo:
           type: array
           minItems: 1
+          maxItems: 30
           description: Country codes (ISO 3166-1 alpha-2) and region codes (WW, EU, LATAM, MENA, CIS).
           items:
             type: string
@@ -648,7 +705,9 @@ components:
           $ref: '#/components/schemas/Priority'
         deadline:
           type: string
-          description: ISO 8601 date-time with a Z or an offset, after now. Stored and returned in UTC.
+          description: >
+            ISO 8601 date-time with an upper case Z or an offset, after now and at most 10 years ahead
+            (no later than year 9999 in UTC). Fractions of a second are cut off. Stored and returned in UTC.
           examples: ['2026-01-20T10:00:00Z', '2026-01-20T13:00:00+03:00']
         references:
           type: array
@@ -675,6 +734,28 @@ components:
                     type: integer
                     minimum: 1
                     description: A file the user uploaded (POST /api/files) and has not attached yet.
+    EditTask:
+      type: object
+      description: >
+        A partial brief: the fields of NewTask except references, all optional, at least one. Same
+        rules as NewTask; a deadline equal to the stored one is accepted even when it is past.
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        offer:
+          $ref: '#/components/schemas/NewTask/properties/offer'
+        geo:
+          $ref: '#/components/schemas/NewTask/properties/geo'
+        creativeType:
+          $ref: '#/components/schemas/CreativeType'
+        quantity:
+          $ref: '#/components/schemas/NewTask/properties/quantity'
+        description:
+          $ref: '#/components/schemas/NewTask/properties/description'
+        priority:
+          $ref: '#/components/schemas/Priority'
+        deadline:
+          $ref: '#/components/schemas/NewTask/properties/deadline'
     TaskCard:
       type: object
       description: A task as the board shows it.

@@ -11,6 +11,7 @@ use App\Identity\Http\SetLocaleAction;
 use App\Shared\Http\HealthController;
 use App\Shared\Http\PublicRoute;
 use App\Tasks\Http\CreateTaskAction;
+use App\Tasks\Http\EditTaskAction;
 use App\Tasks\Http\GetTaskAction;
 use App\Tasks\Http\HistoryAction;
 use App\Tasks\Http\ListTasksAction;
@@ -44,5 +45,6 @@ return static function (App $app): void {
     $app->post('/api/tasks', CreateTaskAction::class);
     $app->get('/api/tasks', ListTasksAction::class);
     $app->get('/api/tasks/{id:[0-9]+}', GetTaskAction::class);
+    $app->patch('/api/tasks/{id:[0-9]+}', EditTaskAction::class);
     $app->get('/api/tasks/{id:[0-9]+}/history', HistoryAction::class);
 };

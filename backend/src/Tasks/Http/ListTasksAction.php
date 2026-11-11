@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * GET /api/tasks: the board, narrowed by the optional query parameters priority, creativeType,
- * designerId, q and includeCancelled (1). Parameters that are empty or unknown are ignored; a known
+ * designerId (a positive whole number), q and includeCancelled (1). Parameters that are empty or unknown are ignored; a known
  * one with a value that cannot be is 422 validation_failed. Answers {tasks: TaskCard[]} for what the
  * viewer may see, whatever they ask for.
  */
@@ -42,7 +42,7 @@ final class ListTasksAction
                 'creativeType' => new Assert\Optional(new Assert\Choice(choices: array_column(CreativeType::cases(), 'value'), message: 'invalid_choice')),
                 'designerId' => new Assert\Optional(new Assert\Sequentially([
                     new Assert\Type('string', message: 'invalid'),
-                    new Assert\Regex(pattern: '/^[0-9]{1,10}$/', message: 'invalid'),
+                    new Assert\Regex(pattern: '/^[1-9][0-9]{0,9}$/', message: 'invalid'),
                 ])),
                 'includeCancelled' => new Assert\Optional(new Assert\Choice(choices: ['0', '1'], message: 'invalid_choice')),
                 'q' => new Assert\Optional(new Assert\Sequentially([

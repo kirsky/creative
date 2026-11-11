@@ -49,11 +49,12 @@ final class TaskQuery
         $parameters = [];
 
         // The viewer's scope: TaskPolicy's ViewTask rule, as SQL.
-        if ($actor->role === Role::Buyer) {
-            [$where[], $parameters[]] = ['t.created_by = ?', $actor->id];
-        } elseif ($actor->role === Role::Designer) {
-            [$where[], $parameters[]] = ["(t.status = 'new' OR t.assignee_id = ?)", $actor->id];
-        }
+        // Explicit for every role, and a role this code does not know fails closed (UnhandledMatchError).
+        match ($actor->role) {
+            Role::Buyer => [$where[], $parameters[]] = ['t.created_by = ?', $actor->id],
+            Role::Designer => [$where[], $parameters[]] = ["(t.status = 'new' OR t.assignee_id = ?)", $actor->id],
+            Role::Manager => null, // Sees everything.
+        };
 
         if (!$filter->includeCancelled) {
             $where[] = "t.status <> 'cancelled'";

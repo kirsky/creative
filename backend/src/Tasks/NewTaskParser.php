@@ -12,15 +12,19 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
 use RuntimeException;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Turns the JSON of POST /api/tasks into a NewTask, or says what is wrong with it as codes
  * (required, too_short, too_long, out_of_range, invalid_choice, invalid_url, must_be_future, invalid).
+ * parseEdit() does the same for the partial body of PATCH /api/tasks/{id}, with the very same rules
+ * for the fields it accepts.
  *
  * Every problem is reported at once. The offer is trimmed; the description is kept as written.
- * The deadline must carry its zone (Z or an offset) and be after the Clock's now; it is stored in UTC.
+ * The deadline must carry its zone (Z or an offset), be after the Clock's now and no more than
+ * DEADLINE_HORIZON from it; it is stored in UTC.
  */
 final class NewTaskParser
 {
@@ -38,7 +42,12 @@ final class NewTaskParser
 
     public const int REFERENCES_MAX = 50;
 
-    private const string DEADLINE_PATTERN = '/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})$/';
+    public const int GEO_MAX = 30;
+
+    /** How far ahead a deadline may lie (a modifier of DateTimeImmutable::modify()). */
+    public const string DEADLINE_HORIZON = '+10 years';
+
+    private const string DEADLINE_PATTERN = '/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})$/D';
 
     private const string URL_PATTERN = '~^https?://(?:\[[0-9a-f:.]+\]|[\p{L}\p{N}_.-]+)(?::\d{1,5})?(?:[/?#]\S*)?$~iu';
 
@@ -54,7 +63,14 @@ final class NewTaskParser
     public function parse(array $input): NewTask
     {
         $now = $this->clock->now();
-        $data = $this->validator->validate($input, $this->rules($now));
+        $data = $this->validator->validate($input, new Assert\Collection([
+            ...$this->fieldRules($now, null),
+            'references' => new Assert\Optional(new Assert\Sequentially([
+                new Assert\Type('array', message: 'invalid'),
+                new Assert\Count(max: self::REFERENCES_MAX, maxMessage: 'too_long'),
+                new Assert\Callback(self::checkReferences(...)),
+            ])),
+        ]));
 
         $deadline = self::deadline($data['deadline'] ?? null) ?? throw new RuntimeException('A validated deadline did not parse.');
         $geo = $data['geo'] ?? null;
@@ -72,9 +88,46 @@ final class NewTaskParser
         );
     }
 
-    private function rules(DateTimeImmutable $now): Assert\Collection
+    /**
+     * The fields of a brief that may be edited, as far as $input names them. Only those are checked
+     * (and an empty value is "required" like on creation); anything else, references and unknown
+     * keys alike, is an unknown_field. $current is the stored deadline: sending it back is no change
+     * and so passes although it may be past already.
+     *
+     * @param array<array-key, mixed> $input decoded request data
+     * @throws ApiError 422 validation_failed, also when $input names no field at all
+     */
+    public function parseEdit(array $input, DateTimeImmutable $current): BriefEdit
     {
-        return new Assert\Collection([
+        if ($input === []) {
+            throw new ApiError(422, 'validation_failed', [['field' => '', 'code' => 'required', 'params' => []]]);
+        }
+
+        $rules = $this->fieldRules($this->clock->now(), $current);
+        $data = $this->validator->validate($input, new Assert\Collection(
+            array_intersect_key($rules, $input),
+        ));
+
+        $deadline = self::deadline($data['deadline'] ?? null);
+        $geo = $data['geo'] ?? null;
+
+        return new BriefEdit(
+            array_key_exists('offer', $data) ? trim(self::string($data['offer'])) : null,
+            is_array($geo) ? self::geo($geo) : null,
+            array_key_exists('creativeType', $data) ? CreativeType::from(self::string($data['creativeType'])) : null,
+            is_int($data['quantity'] ?? null) ? $data['quantity'] : null,
+            array_key_exists('description', $data) ? self::string($data['description']) : null,
+            array_key_exists('priority', $data) ? Priority::from(self::string($data['priority'])) : null,
+            $deadline,
+        );
+    }
+
+    /**
+     * @return array<string, Constraint>
+     */
+    private function fieldRules(DateTimeImmutable $now, ?DateTimeImmutable $current): array
+    {
+        return [
             'offer' => new Assert\Sequentially([
                 new Assert\NotBlank(message: 'required', normalizer: 'trim'),
                 new Assert\Type('string', message: 'invalid'),
@@ -82,7 +135,10 @@ final class NewTaskParser
                 new Assert\Length(min: self::OFFER_MIN, minMessage: 'too_short', normalizer: 'trim'),
                 new Assert\Length(max: self::OFFER_MAX, maxMessage: 'too_long', normalizer: 'trim'),
             ]),
-            'geo' => new Assert\Callback(self::checkGeo(...)),
+            'geo' => new Assert\Sequentially([
+                new Assert\Callback(self::checkGeo(...)),
+                new Assert\Count(max: self::GEO_MAX, maxMessage: 'too_long'),
+            ]),
             'creativeType' => new Assert\Sequentially([
                 new Assert\NotBlank(message: 'required'),
                 new Assert\Choice(choices: array_column(CreativeType::cases(), 'value'), message: 'invalid_choice'),
@@ -103,21 +159,28 @@ final class NewTaskParser
             ]),
             'deadline' => new Assert\Sequentially([
                 new Assert\NotBlank(message: 'required'),
-                new Assert\Callback(static function (mixed $value, ExecutionContextInterface $context) use ($now): void {
+                new Assert\Callback(static function (mixed $value, ExecutionContextInterface $context) use ($now, $current): void {
                     $deadline = self::deadline($value);
                     if ($deadline === null) {
+                        $context->buildViolation('invalid')->addViolation();
+                    } elseif ($current !== null && $deadline == $current) {
+                        return; // Not a change, so the usual limits do not apply.
+                    } elseif (self::beyondHorizon($deadline, $now)) {
                         $context->buildViolation('invalid')->addViolation();
                     } elseif ($deadline <= $now) {
                         $context->buildViolation('must_be_future')->addViolation();
                     }
                 }),
             ]),
-            'references' => new Assert\Optional(new Assert\Sequentially([
-                new Assert\Type('array', message: 'invalid'),
-                new Assert\Count(max: self::REFERENCES_MAX, maxMessage: 'too_long'),
-                new Assert\Callback(self::checkReferences(...)),
-            ])),
-        ]);
+        ];
+    }
+
+    /**
+     * Too far ahead to be a plan, or a year the database cannot hold (UTC year above 9999).
+     */
+    private static function beyondHorizon(DateTimeImmutable $deadline, DateTimeImmutable $now): bool
+    {
+        return (int) $deadline->format('Y') > 9999 || $deadline > $now->modify(self::DEADLINE_HORIZON);
     }
 
     private static function checkGeo(mixed $value, ExecutionContextInterface $context): void

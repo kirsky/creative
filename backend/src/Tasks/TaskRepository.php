@@ -16,7 +16,7 @@ use RuntimeException;
  * Writes a task and the rows that hang on it, and finds the part of a task that decides who may do
  * what. The read side of the board and the task page is TaskQuery.
  *
- * Nothing here opens a transaction: TaskService wraps the whole creation in one.
+ * Nothing here opens a transaction: TaskService wraps each change in one.
  */
 final class TaskRepository
 {
@@ -69,9 +69,83 @@ final class TaskRepository
             ->execute([$taskId, $fileId]);
     }
 
-    public function find(int $id): ?Task
+    /**
+     * The task, locked against concurrent changes until the transaction it is called in ends.
+     * Call it inside Database::transaction().
+     */
+    public function findForUpdate(int $id): ?Task
     {
-        $statement = $this->database->pdo()->prepare('SELECT id, created_by, assignee_id, status, deadline_at FROM tasks WHERE id = ?');
+        return $this->find($id, true);
+    }
+
+    /**
+     * The brief as stored, in the normalised form of BriefEdit::values(), for every field of
+     * BriefEdit::FIELDS.
+     *
+     * @return array<string, mixed>
+     */
+    public function brief(int $id): array
+    {
+        $pdo = $this->database->pdo();
+        $statement = $pdo->prepare('SELECT offer, creative_type, quantity, description, priority, deadline_at FROM tasks WHERE id = ?');
+        $statement->execute([$id]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            throw new RuntimeException(sprintf('Task %d is gone.', $id));
+        }
+
+        $geo = $pdo->prepare('SELECT code FROM task_geo WHERE task_id = ? ORDER BY code');
+        $geo->execute([$id]);
+
+        return [
+            'offer' => Row::string($row, 'offer'),
+            'geo' => array_map(static fn(mixed $code): string => is_string($code) ? $code : '', $geo->fetchAll(PDO::FETCH_COLUMN)),
+            'creativeType' => Row::string($row, 'creative_type'),
+            'quantity' => Row::int($row, 'quantity'),
+            'description' => Row::string($row, 'description'),
+            'priority' => Row::string($row, 'priority'),
+            'deadline' => BriefEdit::deadlineText(self::time(Row::string($row, 'deadline_at'))),
+        ];
+    }
+
+    /**
+     * Writes the fields $edit names (the geo replaced as a whole) and sets updated_at to $now.
+     * Nothing is written when it names none.
+     */
+    public function updateBrief(int $id, BriefEdit $edit, DateTimeImmutable $now): void
+    {
+        $columns = [
+            'offer' => $edit->offer,
+            'creative_type' => $edit->creativeType?->value,
+            'quantity' => $edit->quantity,
+            'description' => $edit->description,
+            'priority' => $edit->priority?->value,
+            'deadline_at' => $edit->deadline?->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME),
+        ];
+        $columns = array_filter($columns, static fn(mixed $value): bool => $value !== null);
+        if ($columns === [] && $edit->geo === null) {
+            return;
+        }
+
+        $columns['updated_at'] = $now->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME);
+        $pdo = $this->database->pdo();
+
+        // The column names come from the list above, never from the client.
+        $assignments = implode(', ', array_map(static fn(string $column): string => $column . ' = ?', array_keys($columns)));
+        $pdo->prepare('UPDATE tasks SET ' . $assignments . ' WHERE id = ?')->execute([...array_values($columns), $id]);
+
+        if ($edit->geo !== null) {
+            $pdo->prepare('DELETE FROM task_geo WHERE task_id = ?')->execute([$id]);
+            $insert = $pdo->prepare('INSERT INTO task_geo (task_id, code) VALUES (?, ?)');
+            foreach ($edit->geo as $code) {
+                $insert->execute([$id, $code]);
+            }
+        }
+    }
+
+    public function find(int $id, bool $forUpdate = false): ?Task
+    {
+        $statement = $this->database->pdo()->prepare('SELECT id, created_by, assignee_id, status, deadline_at FROM tasks WHERE id = ?' . ($forUpdate ? ' FOR UPDATE' : ''));
         $statement->execute([$id]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 

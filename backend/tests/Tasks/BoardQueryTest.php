@@ -235,7 +235,7 @@ final class BoardQueryTest extends ApiTestCase
         $this->assertMatchesSpec($ok);
         self::assertCount(1, self::jsonArray($ok, 'tasks'));
 
-        foreach (['priority=asap', 'creativeType=hologram', 'designerId=abc', 'includeCancelled=maybe', 'q[]=x', 'q=' . str_repeat('x', 101)] as $query) {
+        foreach (['priority=asap', 'creativeType=hologram', 'designerId=abc', 'designerId=0', 'designerId=-1', 'designerId=007', 'includeCancelled=maybe', 'q[]=x', 'q=' . str_repeat('x', 101)] as $query) {
             $bad = $this->request('GET', '/api/tasks?' . $query, as: $this->mia);
             self::assertSame(422, $bad->getStatusCode(), $query);
             $this->assertMatchesSpec($bad);
