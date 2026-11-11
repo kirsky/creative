@@ -69,6 +69,18 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+/** @type {((language: Language) => void) | null} */
+let localeSavedHandler = null;
+
+/**
+ * Registers what happens after the server has stored a language switch (the auth provider
+ * updates its cached user, so the cache matches the account).
+ * @param {((language: Language) => void) | null} handler
+ */
+export function setLocaleSavedHandler(handler) {
+  localeSavedHandler = handler;
+}
+
 /** Sends the saved language to the server in order, so quick switches cannot land reversed. */
 let serverSync = Promise.resolve();
 
@@ -77,6 +89,7 @@ function saveOnServer(language) {
   serverSync = serverSync.then(async () => {
     try {
       await apiFetch('/api/me/locale', { method: 'PATCH', body: { locale: language } });
+      localeSavedHandler?.(language);
     } catch (error) {
       // The switch itself has worked; the server will simply still hold the old value.
       if (process.env.NODE_ENV !== 'production') {

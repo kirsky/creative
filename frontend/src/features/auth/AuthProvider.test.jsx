@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { queryKeys } from '../../api/queryKeys';
 import { apiFetch, getCsrfToken, setCsrfToken } from '../../api/client';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
-import i18n from '../../i18n';
+import i18n, { changeLanguage } from '../../i18n';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './useAuth';
 
 function Probe() {
-  const { user, isLoading, signIn, signOut } = useAuth();
+  const { user, isLoading, signIn, signOut, refresh } = useAuth();
   if (isLoading) {
     return <p>loading</p>;
   }
@@ -17,6 +18,7 @@ function Probe() {
       <p>{user ? `user:${user.username}:${user.role}` : 'anonymous'}</p>
       <button onClick={() => signIn('alice', 'secret').catch(() => {})}>sign in</button>
       <button onClick={() => signOut()}>sign out</button>
+      <button onClick={() => refresh()}>refresh</button>
     </div>
   );
 }
@@ -30,6 +32,7 @@ function renderProbe() {
       </AuthProvider>
     </QueryClientProvider>,
   );
+  return queryClient;
 }
 
 beforeEach(() => {
@@ -132,6 +135,107 @@ describe('AuthProvider and the interface language', () => {
     await screen.findByText('user:alice:buyer');
     expect(i18n.language).toBe('ru');
     expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(['/api/auth/me', '/api/auth/login']);
+  });
+});
+
+describe('a local language switch survives auth refetches', () => {
+  it('keeps Russian after refresh() although /me still says English', async () => {
+    const me = makeMe({ locale: 'en' });
+    installFetch({
+      'GET /api/auth/me': mockResponse(200, me),
+      'PATCH /api/me/locale': mockResponse(200, { ...me, locale: 'ru' }),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    await act(() => changeLanguage('ru'));
+    await userEvent.click(screen.getByText('refresh'));
+    await waitFor(() => expect(screen.getByText('user:alice:buyer')).toBeInTheDocument());
+    expect(i18n.language).toBe('ru');
+    expect(document.documentElement.lang).toBe('ru');
+    expect(localStorage.getItem('creative.lang')).toBe('ru');
+  });
+
+  it('keeps the chosen language when the PATCH failed and /me is refetched', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchMock = installFetch({
+      'GET /api/auth/me': mockResponse(200, makeMe({ locale: 'en' })),
+      'PATCH /api/me/locale': errorResponse(500, 'internal_error'),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    await act(() => changeLanguage('ru'));
+    await userEvent.click(screen.getByText('refresh'));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([path]) => path === '/api/auth/me')).toHaveLength(2),
+    );
+    expect(i18n.language).toBe('ru');
+    expect(document.documentElement.lang).toBe('ru');
+    warn.mockRestore();
+  });
+
+  it('is not undone by a /me request that was already in flight during the switch', async () => {
+    const me = makeMe({ locale: 'en' });
+    /** @type {(() => void) | null} */
+    let release = null;
+    let meCalls = 0;
+    installFetch({
+      'GET /api/auth/me': () => {
+        meCalls += 1;
+        if (meCalls === 1) {
+          return Promise.resolve(mockResponse(200, me));
+        }
+        return new Promise((resolve) => {
+          release = () => resolve(mockResponse(200, me));
+        });
+      },
+      'PATCH /api/me/locale': mockResponse(200, { ...me, locale: 'ru' }),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    await userEvent.click(screen.getByText('refresh'));
+    await waitFor(() => expect(release).not.toBeNull());
+    await act(() => changeLanguage('ru'));
+    await act(async () => {
+      release?.();
+    });
+    await waitFor(() => expect(meCalls).toBe(2));
+    expect(i18n.language).toBe('ru');
+    expect(document.documentElement.lang).toBe('ru');
+  });
+
+  it('updates the cached user after a successful PATCH, not after a failed one', async () => {
+    const me = makeMe({ locale: 'en' });
+    installFetch({
+      'GET /api/auth/me': mockResponse(200, me),
+      'PATCH /api/me/locale': mockResponse(200, { ...me, locale: 'ru' }),
+    });
+    const queryClient = renderProbe();
+    await screen.findByText('user:alice:buyer');
+    expect(queryClient.getQueryData(queryKeys.me())).toMatchObject({ locale: 'en' });
+    await act(() => changeLanguage('ru'));
+    expect(queryClient.getQueryData(queryKeys.me())).toMatchObject({ locale: 'ru' });
+
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    installFetch({ 'PATCH /api/me/locale': errorResponse(500, 'internal_error') });
+    await act(() => changeLanguage('en'));
+    expect(queryClient.getQueryData(queryKeys.me())).toMatchObject({ locale: 'ru' });
+  });
+
+  it('sign-in after a sign-out applies the server locale again', async () => {
+    const fetchMock = installFetch({
+      'GET /api/auth/me': mockResponse(200, makeMe({ locale: 'ru' })),
+      'POST /api/auth/logout': mockResponse(204),
+      'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'en' }) }),
+    });
+    renderProbe();
+    await screen.findByText('user:alice:buyer');
+    expect(i18n.language).toBe('ru');
+    await userEvent.click(screen.getByText('sign out'));
+    await screen.findByText('anonymous');
+    await userEvent.click(screen.getByText('sign in'));
+    await screen.findByText('user:alice:buyer');
+    expect(i18n.language).toBe('en');
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/me/locale')).toBe(false);
   });
 });
 

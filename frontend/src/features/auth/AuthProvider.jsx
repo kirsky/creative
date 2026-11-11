@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ApiRequestError } from '../../api/ApiRequestError';
 import { apiFetch, setCsrfToken, setUnauthenticatedHandler } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
-import { changeLanguage } from '../../i18n';
+import { changeLanguage, setLocaleSavedHandler } from '../../i18n';
 import { isLanguage } from '../../i18n/detect';
 import { AuthContext } from './useAuth';
 
@@ -28,7 +28,6 @@ async function fetchMe() {
     /** @type {Me} */
     const me = await apiFetch('/api/auth/me');
     setCsrfToken(me.csrfToken);
-    applyServerLocale(me);
     return me;
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
@@ -46,15 +45,28 @@ async function fetchMe() {
  */
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
+  // The server's language is applied when a session starts (the first /me answer, or sign-in),
+  // never on later refetches: those could undo a switch the user has just made.
+  const localeApplied = useRef(false);
+  const loadMe = useCallback(async () => {
+    const me = await fetchMe();
+    if (me !== null && !localeApplied.current) {
+      localeApplied.current = true;
+      applyServerLocale(me);
+    }
+    return me;
+  }, []);
+
   const meQuery = useQuery({
     queryKey: queryKeys.me(),
-    queryFn: fetchMe,
+    queryFn: loadMe,
     retry: false,
     staleTime: Infinity,
   });
 
   const endSession = useCallback(() => {
     setCsrfToken(null);
+    localeApplied.current = false;
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.me()[0] });
     queryClient.setQueryData(queryKeys.me(), null);
   }, [queryClient]);
@@ -63,6 +75,16 @@ export function AuthProvider({ children }) {
     setUnauthenticatedHandler(endSession);
     return () => setUnauthenticatedHandler(null);
   }, [endSession]);
+
+  // Once the server has stored a language switch, the cached user says so too.
+  useEffect(() => {
+    setLocaleSavedHandler((locale) => {
+      queryClient.setQueryData(queryKeys.me(), (/** @type {Me | null | undefined} */ me) =>
+        me ? { ...me, locale } : me,
+      );
+    });
+    return () => setLocaleSavedHandler(null);
+  }, [queryClient]);
 
   const signIn = useCallback(
     /** @param {string} username @param {string} password */
@@ -73,6 +95,7 @@ export function AuthProvider({ children }) {
         body: { username, password },
       });
       setCsrfToken(user.csrfToken);
+      localeApplied.current = true;
       applyServerLocale(user);
       queryClient.setQueryData(queryKeys.me(), user);
       return user;

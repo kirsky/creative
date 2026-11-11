@@ -33,8 +33,8 @@ export function makeMe(overrides = {}) {
 
 /**
  * Replaces globalThis.fetch with a router over "METHOD /api/path" keys. A handler may be a response
- * or a function returning one. Unmatched calls fail the test loudly.
- * @param {Record<string, ReturnType<typeof mockResponse> | (() => ReturnType<typeof mockResponse>)>} table
+ * or a function returning one (possibly as a promise, to hold a request open). Unmatched calls fail the test loudly.
+ * @param {Record<string, ReturnType<typeof mockResponse> | (() => ReturnType<typeof mockResponse> | Promise<ReturnType<typeof mockResponse>>)>} table
  */
 export function installFetch(table) {
   const fetchMock = jest.fn(async (/** @type {string} */ path, /** @type {RequestInit} */ init) => {
