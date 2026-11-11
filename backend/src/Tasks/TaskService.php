@@ -13,10 +13,11 @@ use App\Identity\User;
 use App\Shared\Clock;
 use App\Shared\Db\Database;
 use App\Shared\Http\ApiError;
+use App\Shared\Validation\FreeText;
 use RuntimeException;
 
 /**
- * What can be done to tasks: creating one and editing its brief.
+ * What can be done to tasks: creating one, editing its brief and cancelling it.
  */
 final class TaskService
 {
@@ -25,9 +26,12 @@ final class TaskService
         private readonly Clock $clock,
         private readonly TaskPolicy $policy,
         private readonly TaskGate $gate,
+        private readonly TaskWorkflow $workflow,
         private readonly NewTaskParser $parser,
         private readonly TaskRepository $tasks,
         private readonly FileStore $files,
+        private readonly AssignmentRepository $assignments,
+        private readonly FreeText $text,
         private readonly TaskEventLog $events,
         private readonly FieldAuditLog $audit,
     ) {}
@@ -117,6 +121,47 @@ final class TaskService
             $this->audit->record($eventId, $diff);
 
             return $this->tasks->find($taskId) ?? throw new RuntimeException('The task just edited is gone.');
+        });
+    }
+
+    /**
+     * The creating buyer withdraws a task that is not finished: from New, In Progress, Under Review
+     * or Revisions Required it becomes Cancelled, its open assignment (a New task has none) is
+     * closed as cancelled and task_cancelled {reason} is recorded, with null for no reason. Nothing is
+     * deleted: rounds (a round under review stays undecided), files, references and assignments stay,
+     * and so does the assignee.
+     *
+     * The answers, in the order they are decided:
+     *  - 404 not_found: there is no such task, or the actor may not view it;
+     *  - 403 forbidden: the actor can view it but is not the buyer who created it;
+     *  - 409 invalid_transition: the task is completed or cancelled already (this is what a second click gets);
+     *  - 422 validation_failed: $reason is not a string or is longer than 2000 characters.
+     *
+     * @param mixed $reason the "reason" of the request body as decoded (null when not sent); it is
+     *     checked only after the answers above, which is why it is not typed
+     * @throws ApiError see above
+     */
+    public function cancel(User $buyer, int $taskId, mixed $reason): void
+    {
+        $this->database->transaction(function () use ($buyer, $taskId, $reason): void {
+            $task = $this->gate->lockAndAuthorize($buyer, $taskId, Action::Cancel);
+            $target = $this->workflow->next($task->status, Transition::Cancel);
+            $reason = $this->text->optional($reason, 'reason');
+
+            $now = $this->clock->now();
+            if (!$this->tasks->changeStatus($taskId, $task->status, $target, $now)) {
+                // The lock makes this impossible; it would mean another code path changed the task unlocked.
+                throw new ApiError(409, 'invalid_transition');
+            }
+
+            // Nobody holds a New task; every other open status has exactly one open assignment.
+            if ($task->status === TaskStatus::New) {
+                $this->assignments->closeOpenIfAny($taskId, 'cancelled', $now);
+            } else {
+                $this->assignments->closeOpen($taskId, 'cancelled', $now);
+            }
+
+            $this->events->record($taskId, TaskEventType::TaskCancelled, $buyer, ['reason' => $reason]);
         });
     }
 }

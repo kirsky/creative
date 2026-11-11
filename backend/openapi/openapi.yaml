@@ -651,6 +651,149 @@ paths:
                 $ref: '#/components/schemas/Error'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /api/tasks/{id}/approve:
+    post:
+      operationId: approveTask
+      summary: Approve the round under review
+      description: >
+        The buyer who created the task approves its latest round. The task goes from `under_review` to
+        `completed`; the round is stored as `approved` with the note (null when none) and the time; the
+        open assignment is closed as `completed` (the designer stays the task's assignee); a
+        `task_approved` event `{"round","note"}` is recorded and `updated_at` set, all in one
+        transaction. Nothing is deleted.
+
+
+        Answers, in the order they are decided: 404 not_found when there is no such task or the user
+        may not view it (including another buyer's task); 403 forbidden for a user who may view it but
+        is not the buyer who created it (a designer, a manager); 409 invalid_transition when the task is
+        not `under_review`, which is also what the second of two repeated or simultaneous clicks gets,
+        and what an Approve that lost a race with a Cancel gets; 422 validation_failed for the body,
+        checked after those. A task `under_review` whose latest round is missing or decided already
+        cannot happen and is a 500, changing nothing.
+
+
+        Field codes of the 422: `note`: invalid (not a string), too_long (more than 2000 characters,
+        params.max 2000).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveRequest'
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task after the approval, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The task is not under review.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/tasks/{id}/request-revisions:
+    post:
+      operationId: requestRevisions
+      summary: Send the round under review back
+      description: >
+        The buyer who created the task sends its latest round back. The task goes from `under_review`
+        to `revisions_required`; the round is stored as `revisions_requested` with the reason and the
+        time; the assignment stays open and the designer stays assigned; a `revisions_requested`
+        event `{"round","reason"}` is recorded and `updated_at` set, all in one transaction.
+
+
+        The answers and their order are those of approve (404, 403, 409 invalid_transition, then 422).
+        Field codes of the 422: `reason`: required (missing, null, empty or only whitespace), invalid
+        (not a string), too_long (more than 2000 characters, params.max 2000).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestRevisionsRequest'
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task after the request, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The task is not under review.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/tasks/{id}/cancel:
+    post:
+      operationId: cancelTask
+      summary: Cancel a task
+      description: >
+        The buyer who created the task withdraws it from `new`, `in_progress`, `under_review` or
+        `revisions_required`: it becomes `cancelled`, its open assignment (a `new` task has none) is
+        closed as `cancelled`, a `task_cancelled` event `{"reason"}` is recorded (null when no reason
+        was given) and `updated_at` set, in one transaction. Nothing is deleted: rounds (a round under
+        review stays undecided), files, references, AI usage and assignments stay, and so does the
+        assignee.
+
+
+        Answers, in the order they are decided: 404 not_found when there is no such task or the user
+        may not view it; 403 forbidden for a user who may view it but is not the buyer who created it;
+        409 invalid_transition when the task is `completed` or `cancelled` already (also the second of
+        two repeated clicks, and a Cancel that lost a race with an Approve); 422 validation_failed for
+        the body, checked after those. Field codes of the 422: `reason`: invalid (not a string),
+        too_long (more than 2000 characters, params.max 2000).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task after the cancellation, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The task is completed or cancelled already.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
 components:
   securitySchemes:
     session:
@@ -1004,6 +1147,29 @@ components:
                 $ref: '#/components/schemas/Round'
             metrics:
               type: ['object', 'null']
+    ApproveRequest:
+      type: object
+      properties:
+        note:
+          type: ['string', 'null']
+          maxLength: 2000
+          description: What the buyer tells the designer about the approval. Stored as written; null, an empty or blank string means no note.
+    RequestRevisionsRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: What the designer has to change. Stored as written; it must not be blank.
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: ['string', 'null']
+          maxLength: 2000
+          description: Why the task is cancelled. Stored as written; null, an empty or blank string means no reason.
     NewRound:
       type: object
       required: [fileIds]

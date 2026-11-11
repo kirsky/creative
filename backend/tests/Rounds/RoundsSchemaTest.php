@@ -60,10 +60,20 @@ final class RoundsSchemaTest extends RoundsTestCase
     {
         $id = $this->taskOfDave();
 
-        $this->expectException(PDOException::class);
-        $this->database->pdo()->prepare(
+        // A decision without its time...
+        $this->assertCheckRefuses(
             "INSERT INTO rounds (task_id, number, submitted_by, submitted_at, decision) VALUES (?, 1, ?, '2026-01-10 10:00:00', 'approved')",
-        )->execute([$id, $this->dave->id]);
+            [$id, $this->dave->id],
+        );
+        // ...and a time without its decision, which is the reverse case of the same constraint.
+        $this->assertCheckRefuses(
+            "INSERT INTO rounds (task_id, number, submitted_by, submitted_at, decided_at) VALUES (?, 1, ?, '2026-01-10 10:00:00', '2026-01-10 11:00:00')",
+            [$id, $this->dave->id],
+        );
+        // Both, or neither, is accepted.
+        $this->insertRound($id, 1, decision: 'approved');
+        $this->insertRound($id, 2);
+        self::assertSame(2, $this->countRows('rounds'));
     }
 
     public function test_deleting_a_task_removes_its_rounds_and_deliverables_but_not_its_files(): void
@@ -86,5 +96,23 @@ final class RoundsSchemaTest extends RoundsTestCase
 
         $this->expectException(PDOException::class);
         $this->database->pdo()->prepare('DELETE FROM users WHERE id = ?')->execute([$this->dave->id]);
+    }
+
+    /**
+     * @param list<int> $parameters
+     */
+    private function assertCheckRefuses(string $sql, array $parameters): void
+    {
+        try {
+            $this->database->pdo()->prepare($sql)->execute($parameters);
+        } catch (PDOException $e) {
+            // The CHECK is what fired, not a key or a foreign key.
+            self::assertStringContainsString('rounds_decided_together', $e->getMessage());
+            self::assertStringContainsString('CONSTRAINT', $e->getMessage());
+
+            return;
+        }
+
+        self::fail('The row was accepted although decision and decided_at disagree.');
     }
 }

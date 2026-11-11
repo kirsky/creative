@@ -68,6 +68,35 @@ final class DeliverableAccessTest extends RoundsTestCase
         self::assertSame(404, $this->download($file, $this->anna)->getStatusCode());
     }
 
+    public function test_after_a_release_another_designer_reads_earlier_rounds_files(): void
+    {
+        $id = $this->taskOfDave();
+        $this->openAssignment($id);
+        $first = $this->uploadFor($this->dave, 'round1.png');
+        self::assertSame(201, $this->submit($id, [$first])->getStatusCode());
+        self::assertSame(200, $this->requestRevisions($id)->getStatusCode());
+        self::assertSame(200, $this->request('POST', '/api/tasks/' . $id . '/release', as: $this->dave)->getStatusCode());
+        $otto = $this->createUser('otto', Role::Buyer);
+
+        // Back in the pool (spec section 4.3): the next designer continues from the earlier rounds,
+        // so before and after picking it up they can read the files already delivered.
+        self::assertSame(200, $this->download($first, $this->eve)->getStatusCode(), 'in the pool');
+        self::assertSame(200, $this->request('POST', '/api/tasks/' . $id . '/pickup', as: $this->eve)->getStatusCode());
+        $response = $this->download($first, $this->eve);
+        self::assertSame(200, $response->getStatusCode(), 'after pick-up');
+        self::assertSame(Samples::png(), (string) $response->getBody());
+
+        // The designer who uploaded them keeps reading their own files, though the task is no longer theirs...
+        self::assertSame(404, $this->request('GET', '/api/tasks/' . $id, as: $this->dave)->getStatusCode());
+        self::assertSame(200, $this->download($first, $this->dave)->getStatusCode(), 'uploader');
+        // ...the creating buyer and the manager read them, and a buyer who did not create the task cannot.
+        self::assertSame(200, $this->download($first, $this->anna)->getStatusCode());
+        self::assertSame(200, $this->download($first, $this->mia)->getStatusCode());
+        $stranger = $this->download($first, $otto);
+        self::assertSame(404, $stranger->getStatusCode());
+        $this->assertMatchesSpec($stranger);
+    }
+
     private function download(int $id, User $as): ResponseInterface
     {
         return $this->request('GET', '/api/files/' . $id, as: $as);

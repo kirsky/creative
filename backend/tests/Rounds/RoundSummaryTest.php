@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Rounds;
 
+use App\Identity\User;
 use App\Tasks\RoundReader;
 use App\Tasks\TaskStatus;
 
@@ -108,5 +109,52 @@ final class RoundSummaryTest extends RoundsTestCase
         self::assertTrue(self::jsonAt($released, 'isReturning'));
         self::assertSame(1, self::jsonAt($released, 'roundCount'));
         self::assertSame(1, count(self::jsonArray($released, 'rounds')));
+    }
+
+    public function test_released_after_revision_request_is_returning(): void
+    {
+        $id = $this->taskOfDave();
+        $this->openAssignment($id);
+        self::assertSame(201, $this->submit($id, [$this->uploadFor($this->dave)])->getStatusCode());
+        self::assertSame(200, $this->requestRevisions($id)->getStatusCode());
+        self::assertSame(200, $this->request('POST', '/api/tasks/' . $id . '/release', as: $this->dave)->getStatusCode());
+
+        // The card on the board, for the designers and for the buyer who sent it back.
+        foreach ([$this->eve, $this->dave, $this->anna] as $viewer) {
+            $card = $this->cardOf($id, $viewer);
+            self::assertSame('new', $card['status'] ?? null, $viewer->username);
+            self::assertTrue($card['isReturning'] ?? null, $viewer->username);
+            self::assertSame(1, $card['roundCount'] ?? null, $viewer->username);
+        }
+
+        // Another designer takes it up and hands in round 2: it is no longer a task coming back.
+        self::assertSame(200, $this->request('POST', '/api/tasks/' . $id . '/pickup', as: $this->eve)->getStatusCode());
+        $returning = $this->cardOf($id, $this->eve);
+        self::assertSame('in_progress', $returning['status'] ?? null);
+        self::assertFalse($returning['isReturning'] ?? null);
+        self::assertSame(201, $this->submit($id, [$this->uploadFor($this->eve)], $this->eve)->getStatusCode());
+
+        $card = $this->cardOf($id, $this->eve);
+        self::assertSame('under_review', $card['status'] ?? null);
+        self::assertFalse($card['isReturning'] ?? null);
+        self::assertSame(2, $card['roundCount'] ?? null);
+    }
+
+    /**
+     * @return array<array-key, mixed> the board card of the task, as the viewer gets it
+     */
+    private function cardOf(int $taskId, User $viewer): array
+    {
+        $response = $this->request('GET', '/api/tasks', as: $viewer);
+        self::assertSame(200, $response->getStatusCode());
+        $this->assertMatchesSpec($response);
+
+        foreach (self::jsonArray($response, 'tasks') as $card) {
+            if (is_array($card) && ($card['id'] ?? null) === $taskId) {
+                return $card;
+            }
+        }
+
+        self::fail(sprintf('%s does not get task %d on the board.', $viewer->username, $taskId));
     }
 }

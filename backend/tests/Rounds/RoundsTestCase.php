@@ -90,6 +90,58 @@ abstract class RoundsTestCase extends ApiTestCase
         return $roundId;
     }
 
+    /**
+     * Opens an assignment of $taskId to $designer straight in the table (the task row is not touched).
+     */
+    protected function openAssignment(int $taskId, ?User $designer = null): void
+    {
+        $this->database->pdo()->prepare('INSERT INTO assignments (task_id, designer_id, assigned_at) VALUES (?, ?, ?)')
+            ->execute([$taskId, ($designer ?? $this->dave)->id, $this->clock->now()->format('Y-m-d H:i:s.u')]);
+    }
+
+    /**
+     * A task of Anna's that Dave holds in the given status, with the open assignment such a task has.
+     * From under review on it also has round 1, undecided, with one deliverable.
+     */
+    protected function taskInStatus(TaskStatus $status): int
+    {
+        if ($status === TaskStatus::New) {
+            return $this->insertTask($this->anna);
+        }
+
+        $id = $this->taskOfDave($status);
+        $this->openAssignment($id);
+        if ($status === TaskStatus::UnderReview) {
+            $this->insertRound($id, 1, [$this->uploadFor($this->dave)]);
+        }
+
+        return $id;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    protected function approve(int $taskId, ?User $as = null, array $body = []): ResponseInterface
+    {
+        return $this->request('POST', '/api/tasks/' . $taskId . '/approve', $body, $as ?? $this->anna);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    protected function requestRevisions(int $taskId, ?User $as = null, array $body = ['reason' => 'Make the logo bigger']): ResponseInterface
+    {
+        return $this->request('POST', '/api/tasks/' . $taskId . '/request-revisions', $body, $as ?? $this->anna);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    protected function cancel(int $taskId, ?User $as = null, array $body = []): ResponseInterface
+    {
+        return $this->request('POST', '/api/tasks/' . $taskId . '/cancel', $body, $as ?? $this->anna);
+    }
+
     protected static function text(mixed $value): string
     {
         return is_string($value) ? $value : self::fail('Expected a string column.');

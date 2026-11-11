@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Rounds;
 
 use App\Shared\Db\Database;
+use App\Shared\Db\Row;
 use DateTimeImmutable;
 use DateTimeZone;
+use PDO;
 
 /**
  * Writes rounds and their deliverables. The read side, for the board and the task page, is RoundQuery.
@@ -41,6 +43,38 @@ final class RoundRepository
             ->execute([$taskId, $number, $designerId, $at->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME), $note]);
 
         return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * The round of $taskId with the highest number, locked until the transaction ends, or null when
+     * the task has none. Call it inside Database::transaction(), after locking the task.
+     *
+     * @return array{id: int, number: int, decided: bool}|null
+     */
+    public function latestForUpdate(int $taskId): ?array
+    {
+        $statement = $this->database->pdo()->prepare('SELECT id, number, decision FROM rounds WHERE task_id = ? ORDER BY number DESC LIMIT 1 FOR UPDATE');
+        $statement->execute([$taskId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+
+        return ['id' => Row::int($row, 'id'), 'number' => Row::int($row, 'number'), 'decided' => Row::nullableString($row, 'decision') !== null];
+    }
+
+    /**
+     * Records the buyer's decision on a round, with its time, in one guarded UPDATE that changes the
+     * row only while it is still undecided. Returns false when it did not.
+     */
+    public function decide(int $roundId, string $decision, ?string $reason, DateTimeImmutable $at): bool
+    {
+        $statement = $this->database->pdo()->prepare(
+            'UPDATE rounds SET decision = ?, decision_reason = ?, decided_at = ? WHERE id = ? AND decision IS NULL',
+        );
+        $statement->execute([$decision, $reason, $at->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME), $roundId]);
+
+        return $statement->rowCount() === 1;
     }
 
     public function addDeliverable(int $roundId, int $fileId): void

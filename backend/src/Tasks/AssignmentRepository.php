@@ -44,13 +44,23 @@ final class AssignmentRepository
      */
     public function closeOpen(int $taskId, string $how, DateTimeImmutable $at): int
     {
+        return $this->closeOpenIfAny($taskId, $how, $at)
+            ?? throw new RuntimeException(sprintf('Task %d has no open assignment to close.', $taskId));
+    }
+
+    /**
+     * Closes the open assignment of $taskId with $how, if it has one, and returns its id; null when
+     * it has none (a task nobody ever picked up).
+     */
+    public function closeOpenIfAny(int $taskId, string $how, DateTimeImmutable $at): ?int
+    {
         $pdo = $this->database->pdo();
 
         $statement = $pdo->prepare('SELECT id FROM assignments WHERE task_id = ? AND ended_at IS NULL FOR UPDATE');
         $statement->execute([$taskId]);
         $id = $statement->fetchColumn();
         if ($id === false) {
-            throw new RuntimeException(sprintf('Task %d has no open assignment to close.', $taskId));
+            return null;
         }
 
         $pdo->prepare('UPDATE assignments SET ended_at = ?, ended_how = ? WHERE id = ?')

@@ -19,8 +19,8 @@ namespace App\History;
  *   task_released        {assignmentId: int}
  *   round_submitted      {round: int, fileCount: int}
  *   revisions_requested  {round: int, reason: string}
- *   task_approved        {round: int, note: string}
- *   task_cancelled       {reason: string}
+ *   task_approved        {round: int, note: ?string}
+ *   task_cancelled       {reason: ?string}
  *   brief_edited         {changes: list<{field: string, old: mixed, new: mixed}>}
  *   ai_usage_changed     {round: int, lines: list<{provider: string, credits: string}>}
  *
@@ -43,10 +43,10 @@ enum TaskEventType: string
     /** Payload: {round: int, reason: string}. */
     case RevisionsRequested = 'revisions_requested';
 
-    /** Payload: {round: int, note: string}. */
+    /** Payload: {round: int, note: ?string}; null when the buyer gave no note. */
     case TaskApproved = 'task_approved';
 
-    /** Payload: {reason: string}. */
+    /** Payload: {reason: ?string}; null when the buyer gave no reason. */
     case TaskCancelled = 'task_cancelled';
 
     /** Payload: {changes: list<{field: string, old: mixed, new: mixed}>}. */
