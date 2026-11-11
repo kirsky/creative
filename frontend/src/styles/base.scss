@@ -6,4 +6,13 @@ html {
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: var(--app-page-bg);
+  background-attachment: fixed;
+}
+
+// Mantine's Paper takes the page colour; a card is a solid surface of its own.
+.app-paper {
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
 }

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiRequestError } from '../api/ApiRequestError';
 import '../i18n';
 import { AuthProvider } from '../features/auth/AuthProvider';
-import { theme } from '../styles/theme';
+import { cssVariablesResolver, theme } from '../styles/theme';
 
 export function createQueryClient() {
   return new QueryClient({
@@ -39,7 +39,11 @@ function LocalizedDates({ children }) {
 export function AppProviders({ children }) {
   const [queryClient] = useState(createQueryClient);
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto">
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
+      defaultColorScheme="auto"
+    >
       <Notifications position="bottom-right" />
       <LocalizedDates>
         <QueryClientProvider client={queryClient}>
