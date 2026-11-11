@@ -74,6 +74,13 @@ function toError(status, body) {
   return new ApiRequestError(status, status === 413 ? 'payload_too_large' : 'unknown');
 }
 
+/** @param {AbortSignal | undefined} signal */
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw new DOMException('The request was aborted', 'AbortError');
+  }
+}
+
 /**
  * Calls the JSON API of this origin. Resolves the parsed JSON body (undefined for 204) and
  * throws ApiRequestError for every failure.
@@ -119,11 +126,16 @@ export async function apiFetch(path, options = {}) {
     throw new ApiRequestError(0, 'network_error');
   }
 
+  // The caller gave up while the request was in flight (a stale answer must have no effect, not
+  // even clearing the session on a 401), whether or not the browser could stop the request.
+  throwIfAborted(options.signal);
+
   if (response.status === 204) {
     return undefined;
   }
 
   const parsed = await readBody(response);
+  throwIfAborted(options.signal);
 
   if (!response.ok) {
     if (response.status === 401 && !(method === 'POST' && path === '/api/auth/login')) {

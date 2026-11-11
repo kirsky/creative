@@ -15,6 +15,8 @@ import { createContext, useContext } from 'react';
  * @typedef {object} AuthContextValue
  * @property {Me | null} user null when signed out
  * @property {boolean} isLoading true until the first /api/auth/me answer
+ * @property {boolean} signedOut true after the user explicitly signed out and until the next
+ *   sign-in: then nothing remembers the page they left (a session that merely expired does)
  * @property {(username: string, password: string) => Promise<Me>} signIn rejects with ApiRequestError
  * @property {() => Promise<void>} signOut
  * @property {() => Promise<void>} refresh reloads the user from /api/auth/me

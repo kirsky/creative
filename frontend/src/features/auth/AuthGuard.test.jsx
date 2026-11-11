@@ -34,13 +34,13 @@ describe('AuthGuard', () => {
 
   it('redirects to /login when no user', async () => {
     const router = renderAt('/board', null);
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Sign in');
+    expect(await screen.findByLabelText(/^Username/)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/login');
   });
 
   it('keeps the intended location in router state', async () => {
     const router = renderAt('/tasks/42?x=1', null);
-    await screen.findByTestId('coming-soon');
+    await screen.findByLabelText(/^Username/);
     expect(router.state.location.pathname).toBe('/login');
     expect(router.state.location.state.from.pathname).toBe('/tasks/42');
     expect(router.state.location.state.from.search).toBe('?x=1');
@@ -48,7 +48,7 @@ describe('AuthGuard', () => {
 
   it('lets /login be reached without a session', async () => {
     const router = renderAt('/login', null);
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Sign in');
+    expect(await screen.findByLabelText(/^Username/)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/login');
   });
 

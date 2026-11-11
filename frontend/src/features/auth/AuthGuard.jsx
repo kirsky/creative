@@ -5,10 +5,11 @@ import { useAuth } from './useAuth';
 
 /**
  * Layout route: renders its child routes for a signed-in user, otherwise sends the visitor to
- * /login and remembers where they wanted to go in the router state (`state.from`).
+ * /login and remembers where they wanted to go in the router state (`state.from`). After an
+ * explicit sign-out it remembers nothing: the next person to sign in starts at their own landing page.
  */
 export function AuthGuard() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signedOut } = useAuth();
   const { t } = useTranslation('common');
   const location = useLocation();
 
@@ -20,7 +21,7 @@ export function AuthGuard() {
     );
   }
   if (user === null) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={signedOut ? null : { from: location }} />;
   }
   return <Outlet />;
 }

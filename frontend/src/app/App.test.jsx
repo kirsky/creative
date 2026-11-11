@@ -54,7 +54,7 @@ describe('App shell', () => {
   it('signs out through the API and lands on /login', async () => {
     const { router } = renderApp('/board', makeMe());
     await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Sign in');
+    expect(await screen.findByLabelText(/^Username/)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/login');
   });
 
@@ -64,7 +64,7 @@ describe('App shell', () => {
     installFetch({ 'GET /api/tasks': errorResponse(401, 'unauthenticated') });
     await act(() => apiFetch('/api/tasks').catch(() => {}));
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
-    expect(screen.getByTestId('coming-soon')).toHaveTextContent('Sign in');
+    expect(await screen.findByLabelText(/^Username/)).toBeInTheDocument();
   });
 });
 

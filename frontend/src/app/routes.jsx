@@ -2,15 +2,15 @@ import { ComingSoon } from '../components/ComingSoon';
 import { NotFound } from '../components/NotFound';
 import { TaskPlaceholder } from '../components/TaskPlaceholder';
 import { AuthGuard } from '../features/auth/AuthGuard';
+import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
 import { RoleRoute } from '../features/auth/RoleRoute';
 import { AppLayout } from './AppLayout';
 
-// Pages are placeholders until their tasks build them: the login page (Task 20), board,
-// task page, my work and dashboard.
+// Pages are placeholders until their tasks build them: board, task page, my work and dashboard.
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
-  { path: '/login', element: <ComingSoon titleKey="auth:login.title" /> },
+  { path: '/login', element: <LoginPage /> },
   {
     element: <AuthGuard />,
     children: [

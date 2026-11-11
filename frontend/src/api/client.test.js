@@ -166,6 +166,23 @@ describe('apiFetch errors', () => {
   });
 });
 
+describe('an answer that arrives after the caller aborted', () => {
+  it('is dropped: AbortError, no unauthenticated handler, no body read', async () => {
+    const handler = jest.fn();
+    setUnauthenticatedHandler(handler);
+    const controller = new AbortController();
+    fetchMock.mockImplementation(async () => {
+      // The browser would have rejected; a fetch that ignores the signal answers anyway.
+      controller.abort();
+      return errorResponse(401, 'unauthenticated');
+    });
+    const error = await apiFetch('/api/auth/me', { signal: controller.signal }).catch((e) => e);
+    expect(error).toBeInstanceOf(DOMException);
+    expect(error.name).toBe('AbortError');
+    expect(handler).not.toHaveBeenCalled();
+  });
+});
+
 describe('unauthenticated handler', () => {
   it('401 from a normal path triggers the handler once', async () => {
     const handler = jest.fn();

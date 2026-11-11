@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiRequestError } from '../../api/ApiRequestError';
 import { apiFetch, setCsrfToken, setUnauthenticatedHandler } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
@@ -22,11 +22,14 @@ function applyServerLocale(me) {
   }
 }
 
-/** @returns {Promise<Me | null>} null when nobody is signed in */
-async function fetchMe() {
+/**
+ * @param {AbortSignal} signal aborted when the query is cancelled (a sign-in has overtaken it)
+ * @returns {Promise<Me | null>} null when nobody is signed in
+ */
+async function fetchMe(signal) {
   try {
     /** @type {Me} */
-    const me = await apiFetch('/api/auth/me');
+    const me = await apiFetch('/api/auth/me', { signal });
     setCsrfToken(me.csrfToken);
     return me;
   } catch (error) {
@@ -48,8 +51,8 @@ export function AuthProvider({ children }) {
   // The server's language is applied when a session starts (the first /me answer, or sign-in),
   // never on later refetches: those could undo a switch the user has just made.
   const localeApplied = useRef(false);
-  const loadMe = useCallback(async () => {
-    const me = await fetchMe();
+  const loadMe = useCallback(async (/** @type {AbortSignal} */ signal) => {
+    const me = await fetchMe(signal);
     if (me !== null && !localeApplied.current) {
       localeApplied.current = true;
       applyServerLocale(me);
@@ -59,10 +62,12 @@ export function AuthProvider({ children }) {
 
   const meQuery = useQuery({
     queryKey: queryKeys.me(),
-    queryFn: loadMe,
+    queryFn: ({ signal }) => loadMe(signal),
     retry: false,
     staleTime: Infinity,
   });
+
+  const [signedOut, setSignedOut] = useState(false);
 
   const endSession = useCallback(() => {
     setCsrfToken(null);
@@ -94,10 +99,15 @@ export function AuthProvider({ children }) {
         method: 'POST',
         body: { username, password },
       });
+      // The first /api/auth/me may still be on its way (the login page is usable meanwhile). Its
+      // answer, "nobody" or even a user, is older than this sign-in and must not replace it or
+      // clear the CSRF token: cancel it first (apiFetch drops the answer of an aborted request).
+      await queryClient.cancelQueries({ queryKey: queryKeys.me() });
       setCsrfToken(user.csrfToken);
       localeApplied.current = true;
       applyServerLocale(user);
       queryClient.setQueryData(queryKeys.me(), user);
+      setSignedOut(false);
       return user;
     },
     [queryClient],
@@ -112,6 +122,8 @@ export function AuthProvider({ children }) {
         throw error;
       }
     }
+    // Set before the user goes away, so the guard that reacts to that sees it.
+    setSignedOut(true);
     endSession();
   }, [endSession]);
 
@@ -125,11 +137,12 @@ export function AuthProvider({ children }) {
     () => ({
       user: meQuery.data ?? null,
       isLoading: meQuery.isPending,
+      signedOut,
       signIn,
       signOut,
       refresh,
     }),
-    [meQuery.data, meQuery.isPending, signIn, signOut, refresh],
+    [meQuery.data, meQuery.isPending, signedOut, signIn, signOut, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
