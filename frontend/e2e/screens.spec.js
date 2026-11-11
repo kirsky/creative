@@ -289,8 +289,11 @@ for (const [role, { user, screens }] of Object.entries(ROLES)) {
           const background = await page.evaluate(
             () => getComputedStyle(document.body).backgroundColor,
           );
-          // Dark means dark: the body is not left white.
-          expect(background === 'rgb(255, 255, 255)').toBe(scheme === 'light');
+          // Dark means dark and light means light: the page backdrop is no longer pure white, so
+          // judge the brightness of the colour instead.
+          const [red, green, blue] = (background.match(/\d+/g) ?? []).map(Number);
+          const brightness = Math.min(red, green, blue);
+          expect(scheme === 'light' ? brightness > 200 : brightness < 80, background).toBe(true);
           await checkPage(page, lng);
           await expectNoSidewaysScroll(page, `${screen.name} at 1280`);
           await expectHeaderFits(page, `${screen.name} at 1280`);

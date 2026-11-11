@@ -87,6 +87,11 @@
 
     &__link {
       padding-inline: var(--mantine-spacing-xs);
+
+      // The words alone fit; the icons would push the controls out of the header.
+      svg {
+        display: none;
+      }
     }
   }
 }
