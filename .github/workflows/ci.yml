@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Quality gates and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Writes .env with freshly generated database passwords.
+      - name: Prepare environment
+        run: make init
+
+      - name: Start the stack (php, nginx, mariadb)
+        run: make up
+
+      - name: Install dependencies (composer, npm ci)
+        run: make install
+
+      # docker compose config, nginx -t, php -l, PHP CS Fixer, PHPStan level 10, PHPUnit,
+      # ESLint, Prettier, Stylelint, tsc --checkJs, i18n key parity, Jest.
+      - name: Run all checks
+        run: make check
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
