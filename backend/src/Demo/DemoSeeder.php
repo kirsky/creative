@@ -98,13 +98,20 @@ final class DemoSeeder
     /**
      * Deletes every task (and with it its geo, references, history, assignments, rounds, deliverables
      * and AI usage) and every file, rows and bytes. The files go first: they are what the RESTRICT keys
-     * of the accounts hang on, and what the tasks' attachments point to. Users, sessions, login attempts
-     * and security events are not touched.
+     * of the accounts hang on, and what the tasks' attachments point to. Then the AI providers people
+     * added go, so the next evaluation's suggestions hold only the defaults (DemoScenario::PROVIDERS,
+     * compared without regard to case, as the unique key is); no AI usage refers to them any more.
+     * Users, sessions, login attempts and security events are not touched.
      */
     public function wipe(): void
     {
         $this->files->deleteAll();
-        $this->database->pdo()->exec('DELETE FROM tasks');
+        $pdo = $this->database->pdo();
+        $pdo->exec('DELETE FROM tasks');
+
+        $defaults = array_map(mb_strtolower(...), DemoScenario::PROVIDERS);
+        $placeholders = implode(', ', array_fill(0, count($defaults), '?'));
+        $pdo->prepare('DELETE FROM ai_providers WHERE LOWER(name) NOT IN (' . $placeholders . ')')->execute($defaults);
     }
 
     private function play(): SeedSummary

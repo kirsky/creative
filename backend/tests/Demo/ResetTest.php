@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Demo;
 
 use App\Demo\Cli\ResetCommand;
+use App\Demo\DemoScenario;
 use App\Identity\PasswordHasher;
 use App\Identity\Role;
 use App\Identity\SecurityEventLog;
@@ -101,6 +102,30 @@ final class ResetTest extends DemoTestCase
         self::assertNotNull($this->service(SessionService::class)->resolve($token), 'the session still works');
         self::assertSame($anna->id, $users->findByUsername('anna')?->id);
         self::assertSame(16, $this->countRows('tasks'));
+    }
+
+    public function test_reset_removes_providers_created_by_reviewers_and_keeps_the_defaults_once(): void
+    {
+        $this->seeder()->seed();
+        $pdo = $this->database->pdo();
+        $pdo->exec("INSERT INTO ai_providers (name) VALUES ('Reviewer Junk 🎰'), ('asdf')");
+        // A reviewer's line on a seeded round uses one of them, so that provider is in use until the tasks go.
+        $round = self::integer($this->fetchValue('SELECT MIN(id) FROM rounds'));
+        $junk = self::integer($this->fetchValue("SELECT id FROM ai_providers WHERE name = 'asdf'"));
+        $pdo->prepare('INSERT INTO ai_usage (round_id, provider_id, credits) VALUES (?, ?, 1.00)')->execute([$round, $junk]);
+        $defaultIds = $this->fetchRows('SELECT id, name FROM ai_providers WHERE name NOT IN (\'Reviewer Junk 🎰\', \'asdf\') ORDER BY id');
+        $state = $this->identityState();
+
+        [$exit, , $stderr] = $this->execute($this->command(ResetCommand::class));
+
+        self::assertSame(0, $exit, $stderr);
+        $names = array_map(static fn(array $row): string => self::text($row['name']), $this->fetchRows('SELECT name FROM ai_providers ORDER BY name'));
+        $expected = DemoScenario::PROVIDERS;
+        sort($expected);
+        self::assertSame($expected, $names, 'exactly the defaults, each once');
+        self::assertSame($defaultIds, $this->fetchRows('SELECT id, name FROM ai_providers ORDER BY id'), 'the defaults keep their rows');
+        self::assertSame(0, self::integer($this->fetchValue('SELECT COUNT(*) FROM ai_usage WHERE provider_id = ?', [$junk])));
+        self::assertSame($state, $this->identityState(), 'accounts, hashes and sessions are untouched');
     }
 
     public function test_reset_on_an_empty_database_attributes_the_tasks_to_the_existing_accounts(): void

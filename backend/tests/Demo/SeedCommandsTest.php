@@ -45,9 +45,12 @@ final class SeedCommandsTest extends DemoTestCase
         }
         self::assertCount(1, array_filter($names, static fn(string $name): bool => strtolower($name) === 'runway'));
 
-        // A second seed after a reset does not add any.
+        // A reset adds none and removes the one people added (Pika); the default under another spelling stays.
         $this->execute($this->command(ResetCommand::class));
-        self::assertCount(7, $this->column('SELECT name FROM ai_providers'));
+        $names = $this->column('SELECT name FROM ai_providers ORDER BY name');
+        self::assertCount(6, $names);
+        self::assertNotContains('Pika', $names);
+        self::assertContains('runway', $names);
     }
 
     public function test_the_seed_command_seeds_an_empty_database(): void
