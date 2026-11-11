@@ -4,6 +4,7 @@ import { createMemoryRouter } from 'react-router';
 import { apiFetch, setCsrfToken } from '../api/client';
 import { EMPTY_BOARD_TABLE } from '../test/board';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../test/http';
+import { TASK_PAGE_HEADING, TASK_PAGE_TABLE } from '../test/taskDetail';
 import { App } from './App';
 import { routes } from './routes';
 
@@ -11,6 +12,7 @@ import { routes } from './routes';
 function renderApp(path, me) {
   const fetchMock = installFetch({
     ...EMPTY_BOARD_TABLE,
+    ...TASK_PAGE_TABLE,
     'GET /api/auth/me': mockResponse(200, me),
     'POST /api/auth/logout': mockResponse(204),
     'PATCH /api/me/locale': mockResponse(200, me),
@@ -110,11 +112,11 @@ describe('language switching', () => {
     expect(within(banner).getByText('Креативные задачи')).toBeInTheDocument();
   });
 
-  it('translates the loader label, the not-found page and the task placeholder', async () => {
+  it('translates the loader label, the not-found page and the task page', async () => {
     const { router } = renderApp('/nowhere', makeMe({ locale: 'ru' }));
     expect(await screen.findByText('Страница не найдена')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Перейти на стартовую страницу' })).toBeInTheDocument();
     await act(() => router.navigate('/tasks/42'));
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Задача 42');
+    expect(await screen.findByRole('heading', TASK_PAGE_HEADING)).toHaveTextContent('Видео');
   });
 });

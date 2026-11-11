@@ -5,6 +5,7 @@ import { setCsrfToken } from '../../api/client';
 import { callsTo, fillValidForm, mockNow } from '../../test/createTaskForm';
 import { errorResponse, mockResponse } from '../../test/http';
 import { makeOptions, renderApp } from '../../test/renderApp';
+import { TASK_PAGE_HEADING, TASK_PAGE_TABLE } from '../../test/taskDetail';
 
 const CREATED = mockResponse(201, { id: 42, offer: 'Casino Royal' });
 
@@ -333,12 +334,12 @@ describe('server answers', () => {
 describe('success', () => {
   it('navigates to the new task and invalidates the board queries', async () => {
     const invalidate = jest.spyOn(QueryClient.prototype, 'invalidateQueries');
-    const { router } = renderForm({ 'POST /api/tasks': CREATED });
+    const { router } = renderForm({ 'POST /api/tasks': CREATED, ...TASK_PAGE_TABLE });
     await ready();
     await fillValidForm();
     await userEvent.click(submit());
     await waitFor(() => expect(router.state.location.pathname).toBe('/tasks/42'));
-    expect(await screen.findByRole('heading', { name: 'Task 42' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', TASK_PAGE_HEADING)).toBeInTheDocument();
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['board'] });
   });
 

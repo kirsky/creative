@@ -1,15 +1,15 @@
 import { ComingSoon } from '../components/ComingSoon';
 import { NotFound } from '../components/NotFound';
-import { TaskPlaceholder } from '../components/TaskPlaceholder';
 import { AuthGuard } from '../features/auth/AuthGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
 import { RoleRoute } from '../features/auth/RoleRoute';
 import { BoardPage } from '../features/board/BoardPage';
+import { TaskPage } from '../features/task/TaskPage';
 import { CreateTaskPage } from '../features/tasks/CreateTaskPage';
 import { AppLayout } from './AppLayout';
 
-// Pages are placeholders until their tasks build them: task page, my work and dashboard.
+// Pages are placeholders until their tasks build them: my work and dashboard.
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
   { path: '/login', element: <LoginPage /> },
@@ -29,7 +29,7 @@ export const routes = [
               </RoleRoute>
             ),
           },
-          { path: '/tasks/:id', element: <TaskPlaceholder /> },
+          { path: '/tasks/:id', element: <TaskPage /> },
           {
             path: '/my-work',
             element: (

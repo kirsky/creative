@@ -1,0 +1,278 @@
+// The task page. Colours come from Mantine's scheme-aware variables, so light and dark both work.
+.task-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+
+  &--message {
+    max-width: 40rem;
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-sm);
+  }
+
+  &__title {
+    overflow-wrap: anywhere;
+  }
+
+  &__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--mantine-spacing-xs);
+  }
+
+  &__deadline {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+
+    &[data-overdue='true'] {
+      color: var(--mantine-color-error);
+      font-weight: 600;
+    }
+  }
+
+  &__error-text {
+    margin: 0 0 var(--mantine-spacing-sm);
+  }
+
+  // Work on the left, facts on the right; one column on a narrow screen.
+  &__columns {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+    align-items: start;
+    gap: var(--mantine-spacing-md);
+
+    @media (width <= 48em) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-md);
+    min-width: 0;
+  }
+}
+
+.task-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+
+  &__title {
+    margin: 0;
+    font-size: var(--mantine-font-size-md);
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin: var(--mantine-spacing-xs) 0 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+  }
+
+  &__empty {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+}
+
+.task-brief {
+  // The description is plain text: its line breaks stay, long words wrap.
+  &__description {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  &__references {
+    margin: 0;
+    padding-left: var(--mantine-spacing-md);
+    overflow-wrap: anywhere;
+  }
+}
+
+.file-list {
+  margin: 0;
+  padding-left: var(--mantine-spacing-md);
+  overflow-wrap: anywhere;
+
+  &__size {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+}
+
+.task-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  padding-left: var(--mantine-spacing-sm);
+  border-left: 3px solid var(--mantine-color-default-border);
+
+  &[data-decision='waiting'] {
+    border-left-color: var(--mantine-color-blue-filled);
+  }
+
+  &[data-decision='revisions_requested'] {
+    border-left-color: var(--mantine-color-orange-filled);
+  }
+
+  &[data-decision='approved'] {
+    border-left-color: var(--mantine-color-green-filled);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 700;
+  }
+
+  &__meta,
+  &__text,
+  &__status,
+  &__ai-total {
+    margin: 0;
+  }
+
+  &__meta,
+  &__decided {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+
+  &__text {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  &__status {
+    font-weight: 600;
+  }
+
+  &__label {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  &__ai-lines {
+    margin: 0;
+    padding-left: var(--mantine-spacing-md);
+    overflow-wrap: anywhere;
+  }
+
+  &__ai-total {
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+  }
+}
+
+.task-side {
+  &__facts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: var(--mantine-spacing-xs) 0;
+
+    dt {
+      margin-top: var(--mantine-spacing-xs);
+      color: var(--app-text-muted);
+      font-size: var(--mantine-font-size-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+
+      &[data-overdue='true'] {
+        color: var(--mantine-color-error);
+        font-weight: 600;
+      }
+    }
+  }
+
+  &__note {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+  }
+
+  &__assignments {
+    margin-top: var(--mantine-spacing-sm);
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  &__assignment-list {
+    margin: var(--mantine-spacing-xs) 0 0;
+    padding-left: var(--mantine-spacing-md);
+    overflow-wrap: anywhere;
+  }
+
+  &__period {
+    display: block;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+  }
+}
+
+.task-history {
+  &__error-text {
+    margin: 0 0 var(--mantine-spacing-sm);
+  }
+}
+
+.timeline {
+  margin: 0;
+  padding: 0 0 0 var(--mantine-spacing-sm);
+  border-left: 3px solid var(--mantine-color-default-border);
+  list-style: none;
+
+  &__item {
+    padding: var(--mantine-spacing-xs) 0;
+  }
+
+  &__time {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-xs);
+  }
+
+  &__text {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__details {
+    margin: 0;
+    padding-left: var(--mantine-spacing-md);
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+    overflow-wrap: anywhere;
+  }
+}

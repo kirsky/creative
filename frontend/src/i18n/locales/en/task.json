@@ -1,5 +1,4 @@
 {
-  "placeholderTitle": "Task {{id}}",
   "creativeTypes": {
     "static_image": "Static image",
     "video": "Video",
@@ -13,6 +12,109 @@
     "normal": "Normal",
     "high": "High",
     "urgent": "Urgent"
+  },
+  "page": {
+    "title": "{{offer}} · {{geo}} · {{type}} ×{{quantity}}",
+    "label": "Task",
+    "backToBoard": "Back to board",
+    "backToMyWork": "Back to My work",
+    "due": "Due {{date}}",
+    "overdue": "Overdue by {{duration}}",
+    "notFound": {
+      "title": "Task not found",
+      "text": "This task does not exist, or you do not have access to it."
+    },
+    "error": {
+      "title": "Could not load the task"
+    }
+  },
+  "brief": {
+    "title": "Brief",
+    "noDescription": "No description.",
+    "references": "References",
+    "noReferences": "No references."
+  },
+  "deliverables": {
+    "title": "Deliverables",
+    "titleRound": "Deliverables · round {{round}}",
+    "empty": "Nothing has been submitted yet.",
+    "noFiles": "This round has no files."
+  },
+  "rounds": {
+    "title": "Revision rounds",
+    "empty": "No rounds yet.",
+    "round": "Round {{round}}",
+    "submitted": "Submitted by {{name}}, {{date}}",
+    "note": "Designer's note",
+    "files": "Files",
+    "waiting": "Waiting for review",
+    "decision": {
+      "revisions_requested": "Revisions requested",
+      "approved": "Approved"
+    },
+    "decidedAt": "Decided {{date}}",
+    "reason": "Reason",
+    "approvalNote": "Note",
+    "ai": {
+      "title": "AI usage",
+      "line": "{{provider}} — {{credits}}",
+      "subtotal": "Round total: {{credits}}"
+    }
+  },
+  "side": {
+    "title": "Facts",
+    "stage": "Stage",
+    "createdBy": "Created by",
+    "assignedTo": "Assigned to",
+    "unassigned": "Unassigned",
+    "deadline": "Deadline",
+    "queueWait": "Queue wait",
+    "cycleTime": "Cycle time",
+    "reviewTime": "Review time",
+    "revisionTurnaround": "Revision turnaround",
+    "aiCredits": "AI credits",
+    "elapsedNote": "Elapsed time, not hours worked.",
+    "previousAssignees": "Previous assignees",
+    "assignment": "{{name}} — {{how}}",
+    "assignmentPeriod": "{{from}} to {{to}}",
+    "endedHow": {
+      "released": "released",
+      "completed": "completed",
+      "cancelled": "task cancelled"
+    }
+  },
+  "history": {
+    "title": "Activity history",
+    "empty": "No activity yet.",
+    "error": "Could not load the activity history"
+  },
+  "fields": {
+    "offer": "Offer",
+    "geo": "GEO",
+    "creativeType": "Creative type",
+    "quantity": "Quantity",
+    "description": "Description",
+    "priority": "Priority",
+    "deadline": "Deadline",
+    "unknown": "Field"
+  },
+  "events": {
+    "task_created": "{{actor}} created the task",
+    "task_picked_up": "{{actor}} picked up the task",
+    "task_released": "{{actor}} released the task",
+    "round_submitted_one": "{{actor}} submitted round {{round}} ({{count}} file)",
+    "round_submitted_other": "{{actor}} submitted round {{round}} ({{count}} files)",
+    "revisions_requested": "{{actor}} requested revisions on round {{round}}",
+    "revisions_requested_reason": "{{actor}} requested revisions on round {{round}}: {{reason}}",
+    "task_approved": "{{actor}} approved round {{round}}",
+    "task_cancelled": "{{actor}} cancelled the task",
+    "task_cancelled_reason": "{{actor}} cancelled the task: {{reason}}",
+    "brief_edited": "{{actor}} edited the brief",
+    "ai_usage_changed": "{{actor}} updated AI usage for round {{round}}: {{lines}}",
+    "ai_usage_cleared": "{{actor}} cleared AI usage for round {{round}}",
+    "aiLine": "{{provider}} {{credits}}",
+    "change": "{{field}}: {{old}} → {{new}}",
+    "unknown": "{{actor}} made a change"
   },
   "create": {
     "title": "New task",

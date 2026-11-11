@@ -1,5 +1,4 @@
 {
-  "placeholderTitle": "Задача {{id}}",
   "creativeTypes": {
     "static_image": "Статичное изображение",
     "video": "Видео",
@@ -13,6 +12,111 @@
     "normal": "Обычный",
     "high": "Высокий",
     "urgent": "Срочный"
+  },
+  "page": {
+    "title": "{{offer}} · {{geo}} · {{type}} ×{{quantity}}",
+    "label": "Задача",
+    "backToBoard": "Назад к доске",
+    "backToMyWork": "Назад к моим задачам",
+    "due": "Срок {{date}}",
+    "overdue": "Просрочено на {{duration}}",
+    "notFound": {
+      "title": "Задача не найдена",
+      "text": "Такой задачи нет, или у вас нет к ней доступа."
+    },
+    "error": {
+      "title": "Не удалось загрузить задачу"
+    }
+  },
+  "brief": {
+    "title": "Бриф",
+    "noDescription": "Описания нет.",
+    "references": "Референсы",
+    "noReferences": "Референсов нет."
+  },
+  "deliverables": {
+    "title": "Результат",
+    "titleRound": "Результат · раунд {{round}}",
+    "empty": "Пока ничего не сдано.",
+    "noFiles": "В этом раунде нет файлов."
+  },
+  "rounds": {
+    "title": "Раунды правок",
+    "empty": "Раундов пока нет.",
+    "round": "Раунд {{round}}",
+    "submitted": "Сдано: {{name}}, {{date}}",
+    "note": "Комментарий дизайнера",
+    "files": "Файлы",
+    "waiting": "Ожидает проверки",
+    "decision": {
+      "revisions_requested": "Запрошены правки",
+      "approved": "Принято"
+    },
+    "decidedAt": "Решение: {{date}}",
+    "reason": "Причина",
+    "approvalNote": "Комментарий",
+    "ai": {
+      "title": "Расход ИИ",
+      "line": "{{provider}} — {{credits}}",
+      "subtotal": "Итого за раунд: {{credits}}"
+    }
+  },
+  "side": {
+    "title": "Факты",
+    "stage": "Этап",
+    "createdBy": "Создатель",
+    "assignedTo": "Исполнитель",
+    "unassigned": "Не назначен",
+    "deadline": "Дедлайн",
+    "queueWait": "Время в очереди",
+    "cycleTime": "Время цикла",
+    "reviewTime": "Время проверки",
+    "revisionTurnaround": "Время правок",
+    "aiCredits": "Кредиты ИИ",
+    "elapsedNote": "Прошедшее время, а не затраченные часы.",
+    "previousAssignees": "Прежние исполнители",
+    "assignment": "{{name}} — {{how}}",
+    "assignmentPeriod": "{{from}} — {{to}}",
+    "endedHow": {
+      "released": "задача возвращена в очередь",
+      "completed": "задача принята",
+      "cancelled": "задача отменена"
+    }
+  },
+  "history": {
+    "title": "История активности",
+    "empty": "Активности пока нет.",
+    "error": "Не удалось загрузить историю активности"
+  },
+  "fields": {
+    "offer": "Оффер",
+    "geo": "ГЕО",
+    "creativeType": "Тип креатива",
+    "quantity": "Количество",
+    "description": "Описание",
+    "priority": "Приоритет",
+    "deadline": "Дедлайн",
+    "unknown": "Поле"
+  },
+  "events": {
+    "task_created": "{{actor}}: задача создана",
+    "task_picked_up": "{{actor}}: задача взята в работу",
+    "task_released": "{{actor}}: задача возвращена в очередь",
+    "round_submitted_one": "{{actor}}: сдан раунд {{round}} ({{count}} файл)",
+    "round_submitted_few": "{{actor}}: сдан раунд {{round}} ({{count}} файла)",
+    "round_submitted_many": "{{actor}}: сдан раунд {{round}} ({{count}} файлов)",
+    "round_submitted_other": "{{actor}}: сдан раунд {{round}} ({{count}} файла)",
+    "revisions_requested": "{{actor}}: запрошены правки по раунду {{round}}",
+    "revisions_requested_reason": "{{actor}}: запрошены правки по раунду {{round}}: {{reason}}",
+    "task_approved": "{{actor}}: принят раунд {{round}}",
+    "task_cancelled": "{{actor}}: задача отменена",
+    "task_cancelled_reason": "{{actor}}: задача отменена: {{reason}}",
+    "brief_edited": "{{actor}}: бриф изменён",
+    "ai_usage_changed": "{{actor}}: обновлён расход ИИ по раунду {{round}}: {{lines}}",
+    "ai_usage_cleared": "{{actor}}: расход ИИ по раунду {{round}} очищен",
+    "aiLine": "{{provider}} {{credits}}",
+    "change": "{{field}}: {{old}} → {{new}}",
+    "unknown": "{{actor}}: изменение в задаче"
   },
   "create": {
     "title": "Новая задача",

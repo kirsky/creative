@@ -12,7 +12,7 @@ import {
 /** @typedef {import('../../i18n/detect').Language} Language */
 
 /** Mantine colours of the priority badges: urgent and high stand out, the rest stays quiet. */
-const PRIORITY_COLORS = /** @type {Record<string, string>} */ ({
+export const PRIORITY_COLORS = /** @type {Record<string, string>} */ ({
   low: 'gray',
   normal: 'gray',
   high: 'yellow',

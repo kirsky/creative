@@ -6,6 +6,7 @@ import { AppProviders } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { EMPTY_BOARD_TABLE } from '../../test/board';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
+import { TASK_PAGE_HEADING, TASK_PAGE_TABLE } from '../../test/taskDetail';
 
 /** @typedef {'buyer' | 'designer' | 'manager'} Role */
 
@@ -17,6 +18,7 @@ import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/ht
 function renderAt(entry, table = {}) {
   const fetchMock = installFetch({
     ...EMPTY_BOARD_TABLE,
+    ...TASK_PAGE_TABLE,
     'GET /api/auth/me': errorResponse(401, 'unauthenticated'),
     ...table,
   });
@@ -332,7 +334,7 @@ describe('LoginPage', () => {
         { 'POST /api/auth/login': mockResponse(200, { user: makeMe({ role: 'designer' }) }) },
       );
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', TASK_PAGE_HEADING);
       expect(router.state.location.pathname).toBe('/tasks/42');
       expect(router.state.location.search).toBe('?tab=files');
       expect(router.state.location.hash).toBe('#top');
@@ -386,7 +388,7 @@ describe('LoginPage', () => {
         { pathname: '/login', state: { from: { pathname: '/tasks/9' } } },
         { 'GET /api/auth/me': mockResponse(200, makeMe({ role: 'designer' })) },
       );
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', TASK_PAGE_HEADING);
       expect(router.state.location.pathname).toBe('/tasks/9');
     });
   });
@@ -434,7 +436,7 @@ describe('LoginPage', () => {
       const { router } = renderAt('/tasks/5', {
         'GET /api/auth/me': mockResponse(200, makeMe({ role: 'designer' })),
       });
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', TASK_PAGE_HEADING);
       installFetch({ 'GET /api/tasks': errorResponse(401, 'unauthenticated') });
       await act(() => apiFetch('/api/tasks').catch(() => {}));
       await usernameField();

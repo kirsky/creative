@@ -313,5 +313,6 @@ describe('client-side validation', () => {
     }
     expect(add).toBeDisabled();
     expect(within(document.body).getAllByLabelText(/^Link \d+$/)).toHaveLength(50);
-  });
+    // Fifty real clicks: more than the default 5 s when the whole suite runs in parallel.
+  }, 30_000);
 });
