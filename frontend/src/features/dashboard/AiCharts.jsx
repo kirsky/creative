@@ -217,11 +217,11 @@ function ByDesigner({ ai, colors }) {
     .map((designer) => ({ ...designer, plotTotal: toPlot(designer.total) }))
     .sort((a, b) => b.plotTotal - a.plotTotal);
   const hasData = designers.some(({ total }) => isPositive(total));
-  // The providers these designers used, in the order of the colour map (sorted by name).
+  // The providers these designers used, sorted by name (a stack order that does not move with the data).
   const used = new Set(
     designers.flatMap(({ byProvider }) => byProvider.map(({ provider }) => provider)),
   );
-  const providers = [...colors.keys()].filter((provider) => used.has(provider));
+  const providers = [...used].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   // Series keys are positions, not names: a provider name may contain a dot or clash with "name".
   const keyOf = (/** @type {string} */ provider) => `p${providers.indexOf(provider)}`;
   const creditsOf = (

@@ -236,6 +236,54 @@ describe('a full dashboard', () => {
     expect(new Set(colors).size).toBe(3);
   });
 
+  it('keeps a provider colour when another period has fewer providers', async () => {
+    const full = makeDashboard();
+    const week = makeDashboard({
+      ai: {
+        total: '350.00',
+        byProvider: [{ provider: 'Runway', credits: '350.00' }],
+        byDesigner: [
+          {
+            designerId: 3,
+            name: 'Anna K.',
+            total: '350.00',
+            byProvider: [{ provider: 'Runway', credits: '350.00' }],
+          },
+        ],
+      },
+    });
+    renderDashboard({
+      dashboard: full,
+      table: { [`GET ${dashboardPath('7d')}`]: mockResponse(200, week) },
+    });
+    const colorsIn = (/** @type {HTMLElement} */ region) =>
+      Object.fromEntries(
+        [...region.querySelectorAll('[data-provider]')].map((item) => [
+          item.getAttribute('data-provider'),
+          item.querySelector('[data-color]')?.getAttribute('data-color'),
+        ]),
+      );
+    const before = colorsIn(await section('AI credits by provider'));
+    expect(Object.keys(before).sort()).toEqual(['Kling', 'Midjourney', 'Runway']);
+
+    await userEvent.click(screen.getByRole('radio', { name: '7 days' }));
+    await waitFor(() =>
+      expect(colorsIn(screen.getByRole('region', { name: 'AI credits by provider' }))).toEqual({
+        Runway: before.Runway,
+      }),
+    );
+    expect(colorsIn(screen.getByRole('region', { name: 'AI credits by designer' }))).toEqual({
+      Runway: before.Runway,
+    });
+    // The bars carry the same colour as the legend.
+    const fills = [
+      ...screen
+        .getByRole('region', { name: 'AI credits by provider' })
+        .querySelectorAll('path.recharts-rectangle'),
+    ].map((path) => path.getAttribute('fill'));
+    expect(fills).toEqual([before.Runway]);
+  });
+
   it('has one h1 and the sections as h2', async () => {
     renderDashboard();
     await section('Overdue tasks');
