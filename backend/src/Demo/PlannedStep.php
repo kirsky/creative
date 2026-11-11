@@ -21,7 +21,7 @@ final readonly class PlannedStep
     ) {}
 
     /**
-     * @param array<string, string> $changes brief fields to change (field => new value)
+     * @param array<string, int|string> $changes brief fields to change (field => new value, as the API takes it)
      */
     public static function edit(int $secondsAgo, string $buyer, array $changes): self
     {
