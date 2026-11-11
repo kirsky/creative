@@ -10,6 +10,11 @@ use App\Identity\Http\MeAction;
 use App\Identity\Http\SetLocaleAction;
 use App\Shared\Http\HealthController;
 use App\Shared\Http\PublicRoute;
+use App\Tasks\Http\CreateTaskAction;
+use App\Tasks\Http\GetTaskAction;
+use App\Tasks\Http\HistoryAction;
+use App\Tasks\Http\ListTasksAction;
+use App\Tasks\Http\OptionsAction;
 use Slim\App;
 
 /*
@@ -34,4 +39,10 @@ return static function (App $app): void {
 
     $app->post('/api/files', UploadAction::class);
     $app->get('/api/files/{id:[0-9]+}', DownloadAction::class);
+
+    $app->get('/api/options', OptionsAction::class);
+    $app->post('/api/tasks', CreateTaskAction::class);
+    $app->get('/api/tasks', ListTasksAction::class);
+    $app->get('/api/tasks/{id:[0-9]+}', GetTaskAction::class);
+    $app->get('/api/tasks/{id:[0-9]+}/history', HistoryAction::class);
 };

@@ -294,6 +294,174 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/options:
+    get:
+      operationId: getOptions
+      summary: The codes the brief form and the board filters offer
+      description: >
+        Codes only, in the order to show them; the frontend translates them (country and region names
+        come from Intl.DisplayNames). Open to every signed-in role.
+      security:
+        - session: []
+      responses:
+        '200':
+          description: The options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Options'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /api/tasks:
+    post:
+      operationId: createTask
+      summary: Create a task (a buyer's brief)
+      description: >
+        Buyers only; a designer or a manager gets 403 forbidden. The task starts as `new`. It is stored
+        together with its geo, its references, the attachment of its reference files and a
+        `task_created` event (empty payload), in one transaction: a failure anywhere leaves nothing.
+
+
+        Problems are reported all at once as validation_failed with these field codes. `offer`
+        (trimmed): required, too_short (params.min 2), too_long (params.max 100). `geo`: required (none
+        given), invalid_choice (a code that is neither an ISO 3166-1 alpha-2 country nor a region),
+        invalid (not a list). `creativeType`, `priority`: required, invalid_choice. `quantity`:
+        required, invalid (not an integer), out_of_range (params.min 1, params.max 100).
+        `description`: required, too_long (params.max 10000); it is stored exactly as sent. `deadline`:
+        required; invalid (not an ISO 8601 date-time with a Z or an offset); must_be_future (not after
+        now). `references` (optional, at most 50): each `{type:"url",url}` or `{type:"file",fileId}`;
+        the fields are named `references.<index>.<key>`: url required, invalid_url (not http or https,
+        or no host), too_long (params.max 2000); type invalid_choice; fileId invalid.
+
+
+        A reference file must be the buyer's own upload and not attached to anything yet; otherwise the
+        answer is 422 validation_failed on field `files` with code invalid_choice, and no task is created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTask'
+      responses:
+        '201':
+          description: Created; the task as the buyer sees it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    get:
+      operationId: listTasks
+      summary: The board
+      description: >
+        The tasks the signed-in user may see, earliest deadline first, then by id. A buyer sees the
+        tasks they created, a designer the `new` tasks and the tasks assigned to them, a manager all.
+        Filters narrow what the user may see and never widen it: a designer asking for another
+        designer's tasks gets nothing of them. Cancelled tasks are left out unless includeCancelled=1.
+        Empty and unknown parameters are ignored; a known one with an impossible value is 422
+        validation_failed (invalid_choice, invalid, too_long).
+      parameters:
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/Priority'
+        - name: creativeType
+          in: query
+          schema:
+            $ref: '#/components/schemas/CreativeType'
+        - name: designerId
+          in: query
+          description: Only tasks assigned to this designer.
+          schema:
+            type: integer
+            minimum: 1
+        - name: q
+          in: query
+          description: >
+            A part of the offer, without regard to case (Cyrillic too). `%`, `_` and `\` are taken
+            literally.
+          schema:
+            type: string
+            maxLength: 100
+        - name: includeCancelled
+          in: query
+          schema:
+            type: string
+            enum: ['0', '1']
+      responses:
+        '200':
+          description: The tasks.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                additionalProperties: false
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskCard'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/tasks/{id}:
+    get:
+      operationId: getTask
+      summary: One task
+      description: >
+        404 not_found when there is no such task or the user may not view it (a buyer's task seen by
+        another buyer, a designer's task seen by another designer).
+      security:
+        - session: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tasks/{id}/history:
+    get:
+      operationId: getTaskHistory
+      summary: The activity history of a task
+      description: >
+        Every event of the task, oldest first, to anybody who may view the task; 404 not_found for
+        everybody else. Payloads are structured data, never text.
+      security:
+        - session: []
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                additionalProperties: false
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskEvent'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     session:
@@ -325,7 +493,21 @@ components:
       schema:
         type: integer
         minimum: 1
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
   responses:
+    NotFound:
+      description: not_found. There is no such resource, or the user may not see it.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthenticated:
       description: No valid session (code unauthenticated).
       content:
@@ -393,6 +575,246 @@ components:
               type: object
               description: Values the message needs (for example a limit). Present only when there are some.
               additionalProperties: true
+    CreativeType:
+      type: string
+      enum: [static_image, video, carousel, animated_gif, html5_banner, other]
+    Priority:
+      type: string
+      enum: [low, normal, high, urgent]
+    TaskStatus:
+      type: string
+      enum: [new, in_progress, under_review, revisions_required, completed, cancelled]
+    Options:
+      type: object
+      required: [creativeTypes, priorities, regions, countries]
+      additionalProperties: false
+      properties:
+        creativeTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreativeType'
+        priorities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Priority'
+        regions:
+          type: array
+          description: Region codes usable as GEO next to countries.
+          items:
+            type: string
+            enum: [WW, EU, LATAM, MENA, CIS]
+        countries:
+          type: array
+          description: The 249 ISO 3166-1 alpha-2 country codes, alphabetical.
+          items:
+            type: string
+            pattern: '^[A-Z]{2}$'
+    Person:
+      type: object
+      required: [id, displayName]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+    NewTask:
+      type: object
+      required: [offer, geo, creativeType, quantity, description, priority, deadline]
+      additionalProperties: false
+      properties:
+        offer:
+          type: string
+          minLength: 2
+          maxLength: 100
+        geo:
+          type: array
+          minItems: 1
+          description: Country codes (ISO 3166-1 alpha-2) and region codes (WW, EU, LATAM, MENA, CIS).
+          items:
+            type: string
+        creativeType:
+          $ref: '#/components/schemas/CreativeType'
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Plain text; shown as text, never as markup.
+        priority:
+          $ref: '#/components/schemas/Priority'
+        deadline:
+          type: string
+          description: ISO 8601 date-time with a Z or an offset, after now. Stored and returned in UTC.
+          examples: ['2026-01-20T10:00:00Z', '2026-01-20T13:00:00+03:00']
+        references:
+          type: array
+          maxItems: 50
+          items:
+            oneOf:
+              - type: object
+                required: [type, url]
+                additionalProperties: false
+                properties:
+                  type:
+                    const: url
+                  url:
+                    type: string
+                    maxLength: 2000
+                    description: An http or https address.
+              - type: object
+                required: [type, fileId]
+                additionalProperties: false
+                properties:
+                  type:
+                    const: file
+                  fileId:
+                    type: integer
+                    minimum: 1
+                    description: A file the user uploaded (POST /api/files) and has not attached yet.
+    TaskCard:
+      type: object
+      description: A task as the board shows it.
+      required:
+        - id
+        - offer
+        - geo
+        - creativeType
+        - quantity
+        - priority
+        - deadlineAt
+        - status
+        - createdBy
+        - assignee
+        - roundCount
+        - creditsTotal
+        - isOverdue
+        - isReturning
+        - allowedActions
+      properties:
+        id:
+          type: integer
+        offer:
+          type: string
+        geo:
+          type: array
+          description: Country and region codes, alphabetical.
+          items:
+            type: string
+        creativeType:
+          $ref: '#/components/schemas/CreativeType'
+        quantity:
+          type: integer
+        priority:
+          $ref: '#/components/schemas/Priority'
+        deadlineAt:
+          type: string
+          description: UTC, to the second.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        createdBy:
+          $ref: '#/components/schemas/Person'
+        assignee:
+          description: The current (or final) assignee; null while nobody has the task.
+          oneOf:
+            - $ref: '#/components/schemas/Person'
+            - type: 'null'
+        roundCount:
+          type: integer
+          minimum: 0
+        creditsTotal:
+          type: string
+          pattern: '^\d+\.\d{2}$'
+          description: AI credits spent over all rounds, a decimal string.
+        isOverdue:
+          type: boolean
+          description: The deadline is strictly before now and the task is neither completed nor cancelled.
+        isReturning:
+          type: boolean
+          description: The task is `new` again because the latest round was sent back for revisions.
+        allowedActions:
+          type: array
+          description: What the signed-in user may do with the task now, in a fixed order.
+          items:
+            type: string
+            enum: [pick_up, release, submit, edit_brief, report_ai_usage, approve, request_revisions, cancel]
+    TaskDetail:
+      description: The card plus the brief. assignments, rounds and metrics are always present and stay empty (null) until their modules exist.
+      allOf:
+        - $ref: '#/components/schemas/TaskCard'
+        - type: object
+          required: [description, references, assignments, rounds, metrics]
+          properties:
+            description:
+              type: string
+            references:
+              type: array
+              items:
+                oneOf:
+                  - type: object
+                    required: [type, url]
+                    additionalProperties: false
+                    properties:
+                      type:
+                        const: url
+                      url:
+                        type: string
+                  - type: object
+                    required: [type, fileId, name, mime, size]
+                    additionalProperties: false
+                    properties:
+                      type:
+                        const: file
+                      fileId:
+                        type: integer
+                        description: Download it with GET /api/files/{id}.
+                      name:
+                        type: string
+                      mime:
+                        type: string
+                      size:
+                        type: integer
+            assignments:
+              type: array
+              items: {}
+            rounds:
+              type: array
+              items: {}
+            metrics:
+              type: ['object', 'null']
+    TaskEvent:
+      type: object
+      required: [id, type, actor, at, payload]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum:
+            - task_created
+            - task_picked_up
+            - task_released
+            - round_submitted
+            - revisions_requested
+            - task_approved
+            - task_cancelled
+            - brief_edited
+            - ai_usage_changed
+        actor:
+          $ref: '#/components/schemas/Person'
+        at:
+          type: string
+          description: UTC, to the millisecond.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+        payload:
+          type: object
+          description: Structured data of the event; {} when it has none.
+          additionalProperties: true
     RateLimitedError:
       description: The error envelope of a 429 rate_limited answer, which always says how long to wait.
       allOf:
@@ -483,6 +905,7 @@ components:
           description: >
             What is wrong with the field: required, too_short, too_long, out_of_range,
             invalid_choice, invalid_url, must_be_future, invalid_amount, unknown_field, invalid.
+            On POST /api/tasks, `geo` and `references.<index>.<key>` name the field.
         params:
           type: object
           description: Values the message needs, for example {"min":2}.

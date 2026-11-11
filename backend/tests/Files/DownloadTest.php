@@ -288,22 +288,11 @@ final class DownloadTest extends ApiTestCase
     {
         $id = $this->uploadAs($this->designer, Samples::png(), 'deliverable.png');
         $store = $this->service(FileStore::class);
-        $store->attach($id, 1, AttachmentKind::Deliverable, $this->designer);
+        $store->attach($id, $this->insertTask($this->buyer), AttachmentKind::Deliverable, $this->designer);
         // Attached to a task the designer cannot view (somebody else's, already assigned elsewhere).
         $this->attachments->attach($id, $this->task(createdBy: $this->buyer->id, assignee: 999, status: TaskStatus::InProgress));
 
         self::assertSame(200, $this->download($id, $this->designer)->getStatusCode());
-    }
-
-    public function test_the_default_resolver_attaches_nothing(): void
-    {
-        // Without the fake, the application as wired today knows no task for any file.
-        $this->bootApp($this->config);
-        $id = $this->uploadAs($this->buyer, Samples::png(), 'a.png');
-        $this->service(FileStore::class)->attach($id, 1, AttachmentKind::Reference, $this->buyer);
-
-        self::assertSame(200, $this->download($id, $this->buyer)->getStatusCode());
-        self::assertSame(404, $this->download($id, $this->manager)->getStatusCode());
     }
 
     private function task(int $createdBy, ?int $assignee, TaskStatus $status): Task

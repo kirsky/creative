@@ -24,12 +24,19 @@ final class FileStoreTest extends ApiTestCase
 
     private User $buyer;
 
+    private int $task;
+
+    private int $otherTask;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->store = $this->service(FileStore::class);
         $this->buyer = $this->createUser('anna', Role::Buyer);
+        // file_attachments.task_id is a foreign key: files are attached to real tasks.
+        $this->task = $this->insertTask($this->buyer);
+        $this->otherTask = $this->insertTask($this->buyer);
     }
 
     public function test_put_stores_the_bytes_and_returns_what_was_stored(): void
@@ -69,10 +76,10 @@ final class FileStoreTest extends ApiTestCase
     {
         $file = $this->putPng($this->buyer);
 
-        $this->store->attach($file->id, 7, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer);
 
         self::assertSame(
-            [['file_id' => $file->id, 'task_id' => 7, 'kind' => 'reference']],
+            [['file_id' => $file->id, 'task_id' => $this->task, 'kind' => 'reference']],
             $this->attachments(),
         );
     }
@@ -82,13 +89,13 @@ final class FileStoreTest extends ApiTestCase
         $reference = $this->putPng($this->buyer);
         $deliverable = $this->putPng($this->buyer);
 
-        $this->store->attach($reference->id, 1, AttachmentKind::Reference, $this->buyer);
-        $this->store->attach($deliverable->id, 1, AttachmentKind::Deliverable, $this->buyer);
+        $this->store->attach($reference->id, $this->task, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($deliverable->id, $this->task, AttachmentKind::Deliverable, $this->buyer);
 
         self::assertSame(
             [
-                ['file_id' => $reference->id, 'task_id' => 1, 'kind' => 'reference'],
-                ['file_id' => $deliverable->id, 'task_id' => 1, 'kind' => 'deliverable'],
+                ['file_id' => $reference->id, 'task_id' => $this->task, 'kind' => 'reference'],
+                ['file_id' => $deliverable->id, 'task_id' => $this->task, 'kind' => 'deliverable'],
             ],
             $this->attachments(),
         );
@@ -97,9 +104,9 @@ final class FileStoreTest extends ApiTestCase
     public function test_a_file_can_be_attached_only_once(): void
     {
         $file = $this->putPng($this->buyer);
-        $this->store->attach($file->id, 1, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer);
 
-        foreach ([[1, AttachmentKind::Reference], [1, AttachmentKind::Deliverable], [2, AttachmentKind::Reference]] as [$task, $kind]) {
+        foreach ([[$this->task, AttachmentKind::Reference], [$this->task, AttachmentKind::Deliverable], [$this->otherTask, AttachmentKind::Reference]] as [$task, $kind]) {
             $this->assertInvalidAttachment(fn() => $this->store->attach($file->id, $task, $kind, $this->buyer));
         }
 
@@ -110,14 +117,14 @@ final class FileStoreTest extends ApiTestCase
     {
         $file = $this->putPng($this->createUser('dave', Role::Designer));
 
-        $this->assertInvalidAttachment(fn() => $this->store->attach($file->id, 1, AttachmentKind::Reference, $this->buyer));
+        $this->assertInvalidAttachment(fn() => $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer));
 
         self::assertSame([], $this->attachments());
     }
 
     public function test_attach_refuses_a_file_that_does_not_exist(): void
     {
-        $this->assertInvalidAttachment(fn() => $this->store->attach(12345, 1, AttachmentKind::Reference, $this->buyer));
+        $this->assertInvalidAttachment(fn() => $this->store->attach(12345, $this->task, AttachmentKind::Reference, $this->buyer));
     }
 
     public function test_attaching_does_not_touch_the_stored_bytes(): void
@@ -126,7 +133,7 @@ final class FileStoreTest extends ApiTestCase
         $file = $this->store->put($this->buyer, $this->uploadedFile($png, 'a.png'));
         $before = $this->listing($this->uploadDir);
 
-        $this->store->attach($file->id, 1, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer);
 
         self::assertSame($before, $this->listing($this->uploadDir));
     }
@@ -154,11 +161,14 @@ final class FileStoreTest extends ApiTestCase
             $this->columnsOf('file_attachments'),
         );
 
-        // A file is attached once (file_id is unique); tasks do not exist yet, so task_id has no
-        // foreign key: the migration that creates tasks adds it with ON DELETE CASCADE.
+        // A file is attached once (file_id is unique); attachments go with their file and with their task.
         self::assertSame(['file_id'], $this->uniqueColumns('file_attachments'));
         self::assertSame(
-            ['file_attachments.file_id -> files.id CASCADE', 'files.uploader_id -> users.id RESTRICT'],
+            [
+                'file_attachments.file_id -> files.id CASCADE',
+                'file_attachments.task_id -> tasks.id CASCADE',
+                'files.uploader_id -> users.id RESTRICT',
+            ],
             $this->foreignKeys(),
         );
     }
@@ -166,18 +176,38 @@ final class FileStoreTest extends ApiTestCase
     public function test_the_database_refuses_a_second_attachment_of_the_same_file(): void
     {
         $file = $this->putPng($this->buyer);
-        $insert = $this->database->pdo()->prepare("INSERT INTO file_attachments (file_id, task_id, kind) VALUES (?, 1, 'reference')");
-        $insert->execute([$file->id]);
+        $insert = $this->database->pdo()->prepare("INSERT INTO file_attachments (file_id, task_id, kind) VALUES (?, ?, 'reference')");
+        $insert->execute([$file->id, $this->task]);
 
         $this->expectException(PDOException::class);
 
-        $insert->execute([$file->id]);
+        $insert->execute([$file->id, $this->task]);
+    }
+
+    public function test_deleting_a_task_removes_its_attachments_but_not_the_files(): void
+    {
+        $file = $this->putPng($this->buyer);
+        $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer);
+
+        $this->database->pdo()->prepare('DELETE FROM tasks WHERE id = ?')->execute([$this->task]);
+
+        self::assertSame(0, $this->countRows('file_attachments'));
+        self::assertSame(1, $this->countRows('files'));
+    }
+
+    public function test_attaching_to_a_task_that_does_not_exist_is_refused_by_the_database(): void
+    {
+        $file = $this->putPng($this->buyer);
+
+        $this->expectException(PDOException::class);
+
+        $this->store->attach($file->id, 987_654, AttachmentKind::Reference, $this->buyer);
     }
 
     public function test_deleting_a_file_row_removes_its_attachment(): void
     {
         $file = $this->putPng($this->buyer);
-        $this->store->attach($file->id, 1, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($file->id, $this->task, AttachmentKind::Reference, $this->buyer);
 
         $this->database->pdo()->exec('DELETE FROM files');
 
@@ -190,7 +220,7 @@ final class FileStoreTest extends ApiTestCase
         $this->putPng($this->buyer);
         $this->clock->advance('P1M');
         $this->putPng($this->createUser('dave', Role::Designer));
-        $this->store->attach($first->id, 1, AttachmentKind::Reference, $this->buyer);
+        $this->store->attach($first->id, $this->task, AttachmentKind::Reference, $this->buyer);
         self::assertCount(3, array_filter($this->listing($this->uploadDir), is_file(...)));
         // Strays that no row knows: a hidden file and a deep directory.
         file_put_contents($this->uploadDir . '/.stray', 'x');

@@ -9,8 +9,8 @@ use Phinx\Migration\AbstractMigration;
  * (task_field_changes). Both are append-only: the application only ever inserts and reads.
  * All timestamps are UTC.
  *
- * task_events.task_id is a plain indexed column for now: the tasks table does not exist yet. The
- * migration that creates tasks adds FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE.
+ * task_events.task_id is a plain indexed column here, because the tasks table did not exist yet;
+ * the CreateTasks migration adds FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE.
  * actor_id is a real foreign key; RESTRICT keeps an account that has history from being deleted.
  *
  * `at` has microsecond precision, so events recorded within the same second keep their true order;

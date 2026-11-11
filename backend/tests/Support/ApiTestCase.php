@@ -14,6 +14,7 @@ use App\Shared\Clock;
 use App\Shared\Config;
 use App\Shared\Db\Database;
 use App\Shared\MutableClock;
+use App\Tasks\TaskStatus;
 use DateTimeImmutable;
 use DateTimeZone;
 use Monolog\Handler\TestHandler;
@@ -218,6 +219,37 @@ abstract class ApiTestCase extends DatabaseTestCase
     }
 
     /**
+     * Inserts a task row directly (the API only ever creates New tasks) with its geo, and returns its id.
+     * The deadline is a UTC "Y-m-d H:i:s"; created_at and updated_at are the test clock's now.
+     *
+     * @param list<string> $geo
+     */
+    protected function insertTask(
+        User $createdBy,
+        string $offer = 'Лото Клуб',
+        TaskStatus $status = TaskStatus::New,
+        ?User $assignee = null,
+        string $deadline = '2026-02-01 10:00:00',
+        string $priority = 'normal',
+        string $creativeType = 'static_image',
+        array $geo = ['US'],
+    ): int {
+        $pdo = $this->database->pdo();
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $pdo->prepare(
+            'INSERT INTO tasks (offer, creative_type, quantity, description, priority, deadline_at, created_by, status, assignee_id, created_at, updated_at)
+             VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)',
+        )->execute([$offer, $creativeType, 'Brief', $priority, $deadline, $createdBy->id, $status->value, $assignee?->id, $now, $now]);
+        $id = (int) $pdo->lastInsertId();
+
+        foreach ($geo as $code) {
+            $pdo->prepare('INSERT INTO task_geo (task_id, code) VALUES (?, ?)')->execute([$id, $code]);
+        }
+
+        return $id;
+    }
+
+    /**
      * The value of the session cookie a response sets (Set-Cookie is just a header here; the Secure
      * attribute does not stop an in-process test from reading it).
      */
@@ -368,6 +400,35 @@ abstract class ApiTestCase extends DatabaseTestCase
     protected static function decodeJson(ResponseInterface $response): mixed
     {
         return json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * A value of the JSON body of a response, by dotted path ("tasks.0.id"; "" is the whole body).
+     * Null when any step is missing.
+     */
+    protected static function jsonAt(ResponseInterface $response, string $path = ''): mixed
+    {
+        $value = self::decodeJson($response);
+        foreach ($path === '' ? [] : explode('.', $path) as $step) {
+            if (!is_array($value) || !array_key_exists($step, $value)) {
+                return null;
+            }
+            $value = $value[$step];
+        }
+
+        return $value;
+    }
+
+    /**
+     * An array of the JSON body of a response, by dotted path; fails the test if it is not one.
+     *
+     * @return array<array-key, mixed>
+     */
+    protected static function jsonArray(ResponseInterface $response, string $path = ''): array
+    {
+        $value = self::jsonAt($response, $path);
+
+        return is_array($value) ? $value : self::fail(sprintf('The body of the response has no array at "%s".', $path));
     }
 
     private static function spec(): OpenApiValidator

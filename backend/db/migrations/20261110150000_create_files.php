@@ -13,8 +13,8 @@ use Phinx\Migration\AbstractMigration;
  * uploader_id is RESTRICT: an account that uploaded files cannot be deleted.
  *
  * file_attachments says which task a file belongs to and in which role. file_id is the primary key,
- * so a file is attached exactly once. task_id is a plain indexed column for now, because the tasks
- * table does not exist yet: the migration that creates tasks adds
+ * so a file is attached exactly once. task_id is a plain indexed column here, because the tasks
+ * table did not exist yet: the CreateTasks migration adds
  * FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE. Deleting a file row removes its
  * attachment. All timestamps are UTC.
  */

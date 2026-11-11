@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Files\AttachedTaskResolver;
-use App\Files\NullAttachedTaskResolver;
 use App\Identity\Cli\RotateCredentialsCommand;
 use App\Shared\Clock;
 use App\Shared\Config;
 use App\Shared\SystemClock;
+use App\Tasks\AttachedTasks;
+use App\Tasks\NoRounds;
+use App\Tasks\RoundSummaryReader;
 use DI\ContainerBuilder;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
@@ -42,9 +44,12 @@ return static function (array $overrides = []): ContainerInterface {
         ResponseFactoryInterface::class => autowire(ResponseFactory::class),
         StreamFactoryInterface::class => autowire(StreamFactory::class),
 
-        // Which tasks a file is attached to. Until the tasks table exists, none: only the uploader can
-        // read a file. The task repository takes this over.
-        AttachedTaskResolver::class => autowire(NullAttachedTaskResolver::class),
+        // Which tasks a file is attached to: FileAccess lets whoever may view them read the file.
+        AttachedTaskResolver::class => autowire(AttachedTasks::class),
+
+        // Where a card's round count, AI credits and "returning" flag come from. No task has a round
+        // until the rounds module exists; it replaces this binding.
+        RoundSummaryReader::class => autowire(NoRounds::class),
 
         // Demo commands take APP_ENV and the SAPI as plain constructor values (tests pass others);
         // DemoGuard decides what they may be.

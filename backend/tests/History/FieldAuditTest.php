@@ -21,9 +21,17 @@ use PDOException;
  */
 final class FieldAuditTest extends ApiTestCase
 {
-    private const TASK = 41;
+    private User $buyer;
 
-    private ?User $buyer = null;
+    private int $task;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->buyer = $this->service(UserRepository::class)->create('anna', 'Anna', Role::Buyer, 'en');
+        $this->task = $this->insertTask($this->buyer);
+    }
 
     public function test_changes_stored_with_old_and_new_values(): void
     {
@@ -170,8 +178,6 @@ final class FieldAuditTest extends ApiTestCase
      */
     private function briefEdited(): int
     {
-        $this->buyer ??= $this->service(UserRepository::class)->create('anna', 'Anna', Role::Buyer, 'en');
-
-        return $this->service(TaskEventLog::class)->record(self::TASK, TaskEventType::BriefEdited, $this->buyer);
+        return $this->service(TaskEventLog::class)->record($this->task, TaskEventType::BriefEdited, $this->buyer);
     }
 }

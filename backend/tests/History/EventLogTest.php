@@ -27,9 +27,19 @@ use ReflectionMethod;
  */
 final class EventLogTest extends ApiTestCase
 {
-    private const TASK = 41;
+    private int $task;
 
-    private const OTHER_TASK = 42;
+    private int $otherTask;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // task_events.task_id is a foreign key: the events below belong to real tasks.
+        $owner = $this->createUser('task-owner', Role::Buyer);
+        $this->task = $this->insertTask($owner);
+        $this->otherTask = $this->insertTask($owner);
+    }
 
     public function test_record_and_read_back_in_order_with_actor_name(): void
     {
@@ -38,20 +48,20 @@ final class EventLogTest extends ApiTestCase
         $log = $this->log();
 
         $this->clock->set(new DateTimeImmutable('2026-11-10T06:00:00Z'));
-        $created = $log->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $created = $log->record($this->task, TaskEventType::TaskCreated, $buyer);
         $this->clock->advance('PT5M');
-        $other = $log->record(self::OTHER_TASK, TaskEventType::TaskCreated, $buyer);
+        $other = $log->record($this->otherTask, TaskEventType::TaskCreated, $buyer);
         $this->clock->advance('PT5M');
-        $pickedUp = $log->record(self::TASK, TaskEventType::TaskPickedUp, $designer, ['assignmentId' => 9]);
+        $pickedUp = $log->record($this->task, TaskEventType::TaskPickedUp, $designer, ['assignmentId' => 9]);
         $this->clock->advance('PT1H');
-        $submitted = $log->record(self::TASK, TaskEventType::RoundSubmitted, $designer, ['round' => 1, 'fileCount' => 3]);
+        $submitted = $log->record($this->task, TaskEventType::RoundSubmitted, $designer, ['round' => 1, 'fileCount' => 3]);
 
         // Ids grow with every event, whatever task it belongs to.
         self::assertGreaterThan($created, $other);
         self::assertGreaterThan($other, $pickedUp);
         self::assertGreaterThan($pickedUp, $submitted);
 
-        $events = $log->forTask(self::TASK);
+        $events = $log->forTask($this->task);
 
         // Only this task's events, oldest first.
         self::assertSame([$created, $pickedUp, $submitted], array_map(static fn(TaskEvent $e): int => $e->id, $events));
@@ -59,24 +69,24 @@ final class EventLogTest extends ApiTestCase
             [TaskEventType::TaskCreated, TaskEventType::TaskPickedUp, TaskEventType::RoundSubmitted],
             array_map(static fn(TaskEvent $e): TaskEventType => $e->type, $events),
         );
-        self::assertSame([self::TASK, self::TASK, self::TASK], array_map(static fn(TaskEvent $e): int => $e->taskId, $events));
+        self::assertSame([$this->task, $this->task, $this->task], array_map(static fn(TaskEvent $e): int => $e->taskId, $events));
         self::assertSame([$buyer->id, $designer->id, $designer->id], array_map(static fn(TaskEvent $e): int => $e->actorId, $events));
         // The name is the user's current display name, joined at read time.
         self::assertSame(['Анна 🎰', 'Dina', 'Dina'], array_map(static fn(TaskEvent $e): string => $e->actorName, $events));
         self::assertSame([[], ['assignmentId' => 9], ['round' => 1, 'fileCount' => 3]], array_map(static fn(TaskEvent $e): array => $e->payload, $events));
 
-        self::assertSame([$other], array_map(static fn(TaskEvent $e): int => $e->id, $log->forTask(self::OTHER_TASK)));
-        self::assertSame([], $log->forTask(self::TASK + 1000));
+        self::assertSame([$other], array_map(static fn(TaskEvent $e): int => $e->id, $log->forTask($this->otherTask)));
+        self::assertSame([], $log->forTask($this->task + 1000));
     }
 
     public function test_the_actor_name_follows_a_renamed_user(): void
     {
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
-        $this->log()->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
 
         $this->database->pdo()->prepare('UPDATE users SET display_name = ? WHERE id = ?')->execute(['Анна Новая', $buyer->id]);
 
-        self::assertSame('Анна Новая', $this->log()->forTask(self::TASK)[0]->actorName);
+        self::assertSame('Анна Новая', $this->log()->forTask($this->task)[0]->actorName);
     }
 
     public function test_events_at_the_same_instant_keep_insertion_order(): void
@@ -95,10 +105,10 @@ final class EventLogTest extends ApiTestCase
         ];
         $ids = [];
         foreach ($types as $type) {
-            $ids[] = $log->record(self::TASK, $type, $buyer);
+            $ids[] = $log->record($this->task, $type, $buyer);
         }
 
-        $events = $log->forTask(self::TASK);
+        $events = $log->forTask($this->task);
         self::assertSame($ids, array_map(static fn(TaskEvent $e): int => $e->id, $events));
         self::assertSame($types, array_map(static fn(TaskEvent $e): TaskEventType => $e->type, $events));
     }
@@ -110,11 +120,11 @@ final class EventLogTest extends ApiTestCase
 
         // Recorded second, but it happened first (the clock went back, as when a demo scenario is replayed).
         $this->clock->set(new DateTimeImmutable('2026-11-10T06:00:00Z'));
-        $later = $log->record(self::TASK, TaskEventType::TaskPickedUp, $buyer);
+        $later = $log->record($this->task, TaskEventType::TaskPickedUp, $buyer);
         $this->clock->set(new DateTimeImmutable('2026-11-10T05:00:00Z'));
-        $earlier = $log->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $earlier = $log->record($this->task, TaskEventType::TaskCreated, $buyer);
 
-        self::assertSame([$earlier, $later], array_map(static fn(TaskEvent $e): int => $e->id, $log->forTask(self::TASK)));
+        self::assertSame([$earlier, $later], array_map(static fn(TaskEvent $e): int => $e->id, $log->forTask($this->task)));
     }
 
     public function test_timestamp_comes_from_clock(): void
@@ -122,9 +132,9 @@ final class EventLogTest extends ApiTestCase
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
         $this->clock->set(new DateTimeImmutable('2026-11-10T06:00:00Z'));
 
-        $id = $this->log()->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $id = $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
 
-        $event = $this->log()->forTask(self::TASK)[0];
+        $event = $this->log()->forTask($this->task)[0];
         self::assertSame($id, $event->id);
         self::assertSame('2026-11-10T06:00:00+00:00', $event->at->format('c'));
         self::assertSame('UTC', $event->at->getTimezone()->getName());
@@ -132,7 +142,7 @@ final class EventLogTest extends ApiTestCase
 
         // Moving the clock moves the next event, and only that one.
         $this->clock->advance('PT90M');
-        $next = $this->log()->record(self::TASK, TaskEventType::TaskPickedUp, $buyer);
+        $next = $this->log()->record($this->task, TaskEventType::TaskPickedUp, $buyer);
         self::assertSame('2026-11-10 07:30:00.000000', $this->rawColumn('at', $next));
         self::assertSame('2026-11-10 06:00:00.000000', $this->rawColumn('at', $id));
     }
@@ -142,9 +152,9 @@ final class EventLogTest extends ApiTestCase
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
         $this->clock->set(new DateTimeImmutable('2026-11-10T06:00:00.123456Z'));
 
-        $this->log()->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
 
-        $event = $this->log()->forTask(self::TASK)[0];
+        $event = $this->log()->forTask($this->task)[0];
         self::assertSame('2026-11-10 06:00:00.123456', $event->at->format('Y-m-d H:i:s.u'));
     }
 
@@ -158,10 +168,10 @@ final class EventLogTest extends ApiTestCase
             }
         };
 
-        $id = (new TaskEventLog($this->database, $clock))->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $id = (new TaskEventLog($this->database, $clock))->record($this->task, TaskEventType::TaskCreated, $buyer);
 
         self::assertSame('2026-11-10 06:00:00.000000', $this->rawColumn('at', $id));
-        self::assertSame('UTC', $this->log()->forTask(self::TASK)[0]->at->getTimezone()->getName());
+        self::assertSame('UTC', $this->log()->forTask($this->task)[0]->at->getTimezone()->getName());
     }
 
     public function test_payload_with_cyrillic_and_emoji_roundtrips(): void
@@ -178,9 +188,9 @@ final class EventLogTest extends ApiTestCase
             'flags' => ['urgent' => true, 'ratio' => 0.5],
         ];
 
-        $id = $this->log()->record(self::TASK, TaskEventType::RevisionsRequested, $buyer, $payload);
+        $id = $this->log()->record($this->task, TaskEventType::RevisionsRequested, $buyer, $payload);
 
-        self::assertSame($payload, $this->log()->forTask(self::TASK)[0]->payload);
+        self::assertSame($payload, $this->log()->forTask($this->task)[0]->payload);
 
         // Stored as readable UTF-8 and plain slashes, not as \uXXXX escapes.
         $raw = $this->rawColumn('payload', $id);
@@ -194,10 +204,10 @@ final class EventLogTest extends ApiTestCase
     {
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
 
-        $id = $this->log()->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $id = $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
 
         self::assertSame('{}', $this->rawColumn('payload', $id));
-        self::assertSame([], $this->log()->forTask(self::TASK)[0]->payload);
+        self::assertSame([], $this->log()->forTask($this->task)[0]->payload);
     }
 
     public function test_a_payload_that_is_not_json_is_refused_and_nothing_is_recorded(): void
@@ -214,7 +224,7 @@ final class EventLogTest extends ApiTestCase
 
         foreach ($refused as $name => $payload) {
             try {
-                $log->record(self::TASK, TaskEventType::RevisionsRequested, $buyer, $payload);
+                $log->record($this->task, TaskEventType::RevisionsRequested, $buyer, $payload);
                 self::fail(sprintf('A payload with %s must be refused.', $name));
             } catch (InvalidArgumentException) {
                 self::assertSame(0, $this->countRows('task_events'), $name);
@@ -229,16 +239,37 @@ final class EventLogTest extends ApiTestCase
         $this->expectException(PDOException::class);
 
         try {
-            $this->log()->record(self::TASK, TaskEventType::TaskCreated, $ghost);
+            $this->log()->record($this->task, TaskEventType::TaskCreated, $ghost);
         } finally {
             self::assertSame(0, $this->countRows('task_events'));
         }
     }
 
+    public function test_the_events_of_a_task_go_with_the_task(): void
+    {
+        $buyer = $this->account('anna', 'Anna', Role::Buyer);
+        $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
+        $this->log()->record($this->otherTask, TaskEventType::TaskCreated, $buyer);
+
+        $this->database->pdo()->prepare('DELETE FROM tasks WHERE id = ?')->execute([$this->task]);
+
+        self::assertSame([], $this->log()->forTask($this->task));
+        self::assertCount(1, $this->log()->forTask($this->otherTask));
+    }
+
+    public function test_an_event_needs_an_existing_task(): void
+    {
+        $buyer = $this->account('anna', 'Anna', Role::Buyer);
+
+        $this->expectException(PDOException::class);
+
+        $this->log()->record(987_654, TaskEventType::TaskCreated, $buyer);
+    }
+
     public function test_an_actor_with_history_cannot_be_deleted(): void
     {
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
-        $this->log()->record(self::TASK, TaskEventType::TaskCreated, $buyer);
+        $this->log()->record($this->task, TaskEventType::TaskCreated, $buyer);
 
         try {
             $this->database->pdo()->prepare('DELETE FROM users WHERE id = ?')->execute([$buyer->id]);
@@ -292,7 +323,7 @@ final class EventLogTest extends ApiTestCase
         self::assertSame(['datetime(6)', 'NO'], $found['at']);
         self::assertSame('NO', $found['payload'][1]);
 
-        // The only foreign key is the actor (RESTRICT). task_id has none until the tasks table exists.
+        // The actor is RESTRICT (an account with history cannot be deleted); the task is CASCADE (events go with their task).
         $keys = $pdo->query(
             "SELECT k.COLUMN_NAME, k.REFERENCED_TABLE_NAME, r.DELETE_RULE
              FROM information_schema.KEY_COLUMN_USAGE k
@@ -301,13 +332,19 @@ final class EventLogTest extends ApiTestCase
              WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = 'task_events'",
         );
         self::assertNotFalse($keys);
-        self::assertSame([['COLUMN_NAME' => 'actor_id', 'REFERENCED_TABLE_NAME' => 'users', 'DELETE_RULE' => 'RESTRICT']], $keys->fetchAll(PDO::FETCH_ASSOC));
+        self::assertEqualsCanonicalizing(
+            [
+                ['COLUMN_NAME' => 'actor_id', 'REFERENCED_TABLE_NAME' => 'users', 'DELETE_RULE' => 'RESTRICT'],
+                ['COLUMN_NAME' => 'task_id', 'REFERENCED_TABLE_NAME' => 'tasks', 'DELETE_RULE' => 'CASCADE'],
+            ],
+            $keys->fetchAll(PDO::FETCH_ASSOC),
+        );
 
         // The payload column only holds JSON.
         $buyer = $this->account('anna', 'Anna', Role::Buyer);
         $this->expectException(PDOException::class);
-        $pdo->prepare("INSERT INTO task_events (task_id, type, actor_id, at, payload) VALUES (1, 'task_created', ?, '2026-11-10 06:00:00', 'not json')")
-            ->execute([$buyer->id]);
+        $pdo->prepare("INSERT INTO task_events (task_id, type, actor_id, at, payload) VALUES (?, 'task_created', ?, '2026-11-10 06:00:00', 'not json')")
+            ->execute([$this->task, $buyer->id]);
     }
 
     private function log(): TaskEventLog
