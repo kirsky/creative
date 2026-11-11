@@ -1,3 +1,79 @@
 {
-  "placeholderTitle": "Task {{id}}"
+  "placeholderTitle": "Task {{id}}",
+  "creativeTypes": {
+    "static_image": "Static image",
+    "video": "Video",
+    "carousel": "Carousel",
+    "animated_gif": "Animated GIF",
+    "html5_banner": "HTML5 banner",
+    "other": "Other"
+  },
+  "priorities": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "create": {
+    "title": "New task",
+    "sections": {
+      "basics": "Basics",
+      "target": "Target",
+      "details": "Details",
+      "deadline": "Deadline",
+      "references": "References"
+    },
+    "offer": {
+      "label": "Offer"
+    },
+    "creativeType": {
+      "label": "Creative type",
+      "placeholder": "Choose a type"
+    },
+    "quantity": {
+      "label": "Quantity"
+    },
+    "priority": {
+      "label": "Priority"
+    },
+    "geo": {
+      "label": "GEO",
+      "placeholder": "Search countries and regions",
+      "regions": "Regions",
+      "countries": "Countries",
+      "nothingFound": "Nothing found",
+      "hint_one": "Up to {{count}} country or region",
+      "hint_other": "Up to {{count}} countries or regions"
+    },
+    "description": {
+      "label": "Description and requirements"
+    },
+    "deadline": {
+      "label": "Deadline",
+      "placeholder": "Pick a date and time",
+      "format": "D MMM YYYY HH:mm",
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "confirm": "Confirm"
+    },
+    "references": {
+      "linksLabel": "Links",
+      "link": "Link {{number}}",
+      "linkPlaceholder": "https://",
+      "addLink": "Add link",
+      "removeLink": "Remove link {{number}}",
+      "filesLabel": "Files",
+      "attach": "Attach files",
+      "fileHint": "Up to {{maxMb}} MB per file.",
+      "removeFile": "Remove {{name}}",
+      "status": {
+        "queued": "Waiting",
+        "uploading": "Uploading",
+        "uploaded": "Uploaded"
+      },
+      "failedNotice_one": "{{count}} file failed to upload and will not be attached.",
+      "failedNotice_other": "{{count}} files failed to upload and will not be attached."
+    },
+    "submit": "Create task"
+  }
 }

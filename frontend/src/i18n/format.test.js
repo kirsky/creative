@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDateTime,
   formatDuration,
+  formatFileSize,
   formatNumber,
   isPastDeadline,
   localDateTimeToUtcIso,
@@ -189,5 +190,19 @@ describe('isPastDeadline', () => {
 
   it('is false for an unreadable deadline', () => {
     expect(isPastDeadline('garbage', now)).toBe(false);
+  });
+});
+
+describe('formatFileSize', () => {
+  it('uses decimal units with one decimal at most', () => {
+    expect(formatFileSize(850, 'en', tEn)).toBe('850 B');
+    expect(formatFileSize(12_500, 'en', tEn)).toBe('12.5 KB');
+    expect(formatFileSize(1_500_000, 'en', tEn)).toBe('1.5 MB');
+    expect(formatFileSize(99_000_000, 'en', tEn)).toBe('99 MB');
+  });
+
+  it('follows the language', () => {
+    expect(normaliseSpaces(formatFileSize(1_500_000, 'ru', tRu))).toBe('1,5 МБ');
+    expect(normaliseSpaces(formatFileSize(850, 'ru', tRu))).toBe('850 Б');
   });
 });

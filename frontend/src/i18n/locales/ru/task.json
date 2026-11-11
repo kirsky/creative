@@ -1,3 +1,83 @@
 {
-  "placeholderTitle": "Задача {{id}}"
+  "placeholderTitle": "Задача {{id}}",
+  "creativeTypes": {
+    "static_image": "Статичное изображение",
+    "video": "Видео",
+    "carousel": "Карусель",
+    "animated_gif": "GIF-анимация",
+    "html5_banner": "HTML5-баннер",
+    "other": "Другое"
+  },
+  "priorities": {
+    "low": "Низкий",
+    "normal": "Обычный",
+    "high": "Высокий",
+    "urgent": "Срочный"
+  },
+  "create": {
+    "title": "Новая задача",
+    "sections": {
+      "basics": "Основное",
+      "target": "Цель",
+      "details": "Детали",
+      "deadline": "Дедлайн",
+      "references": "Референсы"
+    },
+    "offer": {
+      "label": "Оффер"
+    },
+    "creativeType": {
+      "label": "Тип креатива",
+      "placeholder": "Выберите тип"
+    },
+    "quantity": {
+      "label": "Количество"
+    },
+    "priority": {
+      "label": "Приоритет"
+    },
+    "geo": {
+      "label": "ГЕО",
+      "placeholder": "Поиск по странам и регионам",
+      "regions": "Регионы",
+      "countries": "Страны",
+      "nothingFound": "Ничего не найдено",
+      "hint_one": "До {{count}} страны или региона",
+      "hint_few": "До {{count}} стран или регионов",
+      "hint_many": "До {{count}} стран или регионов",
+      "hint_other": "До {{count}} стран или регионов"
+    },
+    "description": {
+      "label": "Описание и требования"
+    },
+    "deadline": {
+      "label": "Дедлайн",
+      "placeholder": "Выберите дату и время",
+      "format": "D MMM YYYY HH:mm",
+      "hours": "Часы",
+      "minutes": "Минуты",
+      "confirm": "Готово"
+    },
+    "references": {
+      "linksLabel": "Ссылки",
+      "link": "Ссылка {{number}}",
+      "linkPlaceholder": "https://",
+      "addLink": "Добавить ссылку",
+      "removeLink": "Удалить ссылку {{number}}",
+      "filesLabel": "Файлы",
+      "attach": "Прикрепить файлы",
+      "fileHint": "До {{maxMb}} МБ на файл.",
+      "removeFile": "Удалить {{name}}",
+      "status": {
+        "queued": "В очереди",
+        "uploading": "Загрузка",
+        "uploaded": "Загружен"
+      },
+      "failedNotice_one": "{{count}} файл не загрузился и не будет прикреплён.",
+      "failedNotice_few": "{{count}} файла не загрузились и не будут прикреплены.",
+      "failedNotice_many": "{{count}} файлов не загрузились и не будут прикреплены.",
+      "failedNotice_other": "{{count}} файла не загрузились и не будут прикреплены."
+    },
+    "submit": "Создать задачу"
+  }
 }

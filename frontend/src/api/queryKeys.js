@@ -2,6 +2,8 @@
 export const queryKeys = {
   me: () => ['me'],
   options: () => ['options'],
+  /** The root of every board query, for invalidating all of them. */
+  boards: () => ['board'],
   /** @param {unknown} filters */
   board: (filters) => ['board', filters],
   /** @param {number | string} id */

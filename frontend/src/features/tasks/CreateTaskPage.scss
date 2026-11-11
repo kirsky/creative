@@ -1,0 +1,51 @@
+.create-task {
+  &__card {
+    width: 100%;
+    max-width: 45rem;
+    margin: 0 auto;
+    padding: var(--mantine-spacing-xl);
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    background-color: var(--mantine-color-body);
+    box-shadow: var(--mantine-shadow-sm);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-md);
+  }
+
+  &__links {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--mantine-spacing-xs);
+    margin-top: var(--mantine-spacing-xs);
+  }
+
+  &__link-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mantine-spacing-xs);
+    width: 100%;
+  }
+
+  &__link-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--mantine-spacing-sm);
+  }
+
+  &__notice {
+    flex: 1 1 100%;
+    text-align: right;
+  }
+}

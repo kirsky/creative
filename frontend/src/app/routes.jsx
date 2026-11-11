@@ -5,6 +5,7 @@ import { AuthGuard } from '../features/auth/AuthGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
 import { RoleRoute } from '../features/auth/RoleRoute';
+import { CreateTaskPage } from '../features/tasks/CreateTaskPage';
 import { AppLayout } from './AppLayout';
 
 // Pages are placeholders until their tasks build them: board, task page, my work and dashboard.
@@ -23,7 +24,7 @@ export const routes = [
             path: '/tasks/new',
             element: (
               <RoleRoute roles={['buyer']}>
-                <ComingSoon titleKey="common:nav.newTask" />
+                <CreateTaskPage />
               </RoleRoute>
             ),
           },

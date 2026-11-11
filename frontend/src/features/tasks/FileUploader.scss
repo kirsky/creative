@@ -1,0 +1,40 @@
+.file-uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-xs);
+  margin-top: var(--mantine-spacing-xs);
+
+  &__list {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-xs) 0;
+    border-top: 1px solid var(--mantine-color-default-border);
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--mantine-spacing-xs);
+  }
+
+  &__name {
+    font-size: var(--mantine-font-size-sm);
+    overflow-wrap: anywhere;
+  }
+}

@@ -144,3 +144,20 @@ export function isPastDeadline(deadlineIso, nowMs = Date.now()) {
   const deadline = parseTimestamp(deadlineIso);
   return deadline !== null && deadline.getTime() < nowMs;
 }
+
+/**
+ * A file size in decimal units, the same ones the 99 MB limit uses: "850 B", "12.5 KB", "1.5 MB".
+ * @param {number} bytes
+ * @param {Language} lng
+ * @param {TFunction} t
+ */
+export function formatFileSize(bytes, lng, t) {
+  const oneDecimal = new Intl.NumberFormat(lng, { maximumFractionDigits: 1 });
+  if (bytes < 1000) {
+    return t('common:fileSize.bytes', { value: formatNumber(bytes, lng) });
+  }
+  if (bytes < 1_000_000) {
+    return t('common:fileSize.kb', { value: oneDecimal.format(bytes / 1000) });
+  }
+  return t('common:fileSize.mb', { value: oneDecimal.format(bytes / 1_000_000) });
+}

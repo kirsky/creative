@@ -35,5 +35,12 @@
     "LATAM": "Latin America",
     "MENA": "Middle East and North Africa",
     "CIS": "CIS"
+  },
+  "cancel": "Cancel",
+  "retry": "Try again",
+  "fileSize": {
+    "bytes": "{{value}} B",
+    "kb": "{{value}} KB",
+    "mb": "{{value}} MB"
   }
 }
