@@ -24,7 +24,13 @@ module.exports = (_env, argv) => {
     resolve: { extensions: ['.jsx', '.js'] },
     module: {
       rules: [
-        { test: /\.jsx?$/, exclude: /node_modules/, use: 'babel-loader' },
+        {
+          test: /\.jsx?$/,
+          exclude: /node_modules/,
+          // Babel's env follows the build, not NODE_ENV (unset here): in its default env,
+          // "development", JSX compiles to jsxDEV, which production React does not have.
+          use: { loader: 'babel-loader', options: { envName: argv.mode ?? 'production' } },
+        },
         { test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] },
         { test: /\.scss$/, use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'] },
       ],
