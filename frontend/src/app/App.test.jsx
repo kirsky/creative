@@ -50,6 +50,20 @@ describe('App shell', () => {
     },
   );
 
+  it('gives every navigation link a decorative icon and the brand mark', async () => {
+    renderApp('/my-work', makeMe({ role: 'designer' }));
+    const banner = await screen.findByRole('banner');
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    }
+    expect(banner.querySelector('.brand-mark')).not.toBeNull();
+    // The sign-out button keeps its name (the text may be hidden on a phone, the icon is not it).
+    const signOut = within(banner).getByRole('button', { name: 'Sign out' });
+    expect(signOut.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it('marks the current page link', async () => {
     renderApp('/board', makeMe());
     const link = await screen.findByRole('link', { name: 'Board' });
