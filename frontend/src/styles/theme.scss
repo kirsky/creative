@@ -1,0 +1,10 @@
+// App-level design tokens. They only alias Mantine's CSS variables, so every value follows the
+// light or dark colour scheme.
+:root {
+  --app-page-width: 90rem;
+  --app-header-height: 3.75rem;
+  --app-surface: var(--mantine-color-body);
+  --app-border: var(--mantine-color-default-border);
+  --app-text: var(--mantine-color-text);
+  --app-text-muted: var(--mantine-color-dimmed);
+}

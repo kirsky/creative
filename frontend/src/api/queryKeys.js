@@ -1,0 +1,14 @@
+/** Every TanStack Query key of the app, so a key is spelled in one place only. */
+export const queryKeys = {
+  me: () => ['me'],
+  options: () => ['options'],
+  /** @param {unknown} filters */
+  board: (filters) => ['board', filters],
+  /** @param {number | string} id */
+  task: (id) => ['task', id],
+  /** @param {number | string} id */
+  taskHistory: (id) => ['task', id, 'history'],
+  /** @param {string} period */
+  dashboard: (period) => ['dashboard', period],
+  aiProviders: () => ['aiProviders'],
+};

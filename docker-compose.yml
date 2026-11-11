@@ -70,6 +70,9 @@ services:
         APP_UID: ${HOST_UID:-1000}
         APP_GID: ${HOST_GID:-1000}
     working_dir: /app
+    environment:
+      # Inside the project (git-ignored), so the cache survives `run --rm` and needs no root.
+      npm_config_cache: /app/.npm-cache
     volumes:
       - ./frontend:/app
 

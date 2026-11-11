@@ -1,0 +1,50 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-md);
+  height: 100%;
+  padding-inline: var(--mantine-spacing-md);
+
+  &__start,
+  &__end {
+    display: flex;
+    align-items: center;
+    gap: var(--mantine-spacing-md);
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  &__error {
+    color: var(--mantine-color-error);
+    font-size: var(--mantine-font-size-xs);
+  }
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+
+  &__link {
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-md);
+    color: var(--app-text);
+    font-size: var(--mantine-font-size-sm);
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: var(--mantine-color-default-hover);
+    }
+
+    &--active {
+      background-color: var(--mantine-primary-color-light);
+      color: var(--mantine-primary-color-light-color);
+    }
+  }
+}

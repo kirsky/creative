@@ -26,8 +26,9 @@ up: ## Build and start the stack (php, nginx, db) on 127.0.0.1:3000
 down: ## Stop the stack; ARGS=-v also deletes the database and uploads volumes
 	$(COMPOSE) down $(ARGS)
 
-install: ## Install the PHP dependencies (composer install) in the php container
+install: ## Install the PHP (composer) and JS (npm ci) dependencies in their containers
 	$(EXEC) composer install --no-interaction
+	$(NODE) npm ci
 
 migrate: ## Run Phinx migrations on the creative database
 	$(EXEC) vendor/bin/phinx migrate -e creative
@@ -46,6 +47,7 @@ check: ## Run all quality gates
 	$(COMPOSE) run --rm -T --no-deps nginx nginx -t
 	$(COMPOSE) run --rm -T --no-deps php php -l public/index.php
 	$(EXEC) composer check
+	$(NODE) npm run check
 
 watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch
