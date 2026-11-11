@@ -5,7 +5,7 @@ COMPOSE := docker compose
 EXEC := $(COMPOSE) exec -T php
 NODE := $(COMPOSE) run --rm -T node
 
-.PHONY: help init up down install migrate php-test js-test check watch e2e demo-reset db-shell
+.PHONY: help init up down install build migrate php-test js-test check watch e2e demo-reset db-shell
 
 help: ## List the targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-11s %s\n", $$1, $$2}'
@@ -48,6 +48,9 @@ check: ## Run all quality gates
 	$(COMPOSE) run --rm -T --no-deps php php -l public/index.php
 	$(EXEC) composer check
 	$(NODE) npm run check
+
+build: ## Production build of the frontend into frontend/dist
+	$(NODE) npm run build
 
 watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch
