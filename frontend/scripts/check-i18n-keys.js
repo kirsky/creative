@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 /** Keep in step with src/i18n/namespaces.js (a test compares the two). */
-const NAMESPACES = ['common', 'auth', 'board', 'task', 'dashboard', 'errors'];
+const NAMESPACES = ['common', 'auth', 'board', 'task', 'dashboard', 'errors', 'mywork'];
 const LANGUAGES = ['en', 'ru'];
 const DEFAULT_DIR = path.join(__dirname, '..', 'src', 'i18n', 'locales');
 

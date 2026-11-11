@@ -65,7 +65,7 @@ describe('AuthGuard', () => {
 describe('RoleRoute', () => {
   it('sends a designer away from /dashboard', async () => {
     const router = renderAt('/dashboard', makeMe({ role: 'designer' }));
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('My work');
+    expect(await screen.findByRole('heading', { level: 1, name: 'My work' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/my-work');
   });
 

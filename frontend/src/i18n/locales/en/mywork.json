@@ -1,0 +1,25 @@
+{
+  "title": "My work",
+  "counters": {
+    "in_progress": "In progress",
+    "revisions_required": "Revisions required",
+    "available": "Available"
+  },
+  "attention": "Needs your attention",
+  "assigned": {
+    "title": "My tasks",
+    "empty": "You have no tasks in progress. Pick one from the available tasks."
+  },
+  "available": {
+    "title": "Available tasks",
+    "empty": "No tasks to pick up right now."
+  },
+  "nothing": {
+    "title": "Nothing to do right now",
+    "text": "You have no tasks and none are waiting to be picked up. New tasks will show up here."
+  },
+  "openBoard": "Open full board",
+  "error": {
+    "title": "Could not load your work"
+  }
+}

@@ -362,7 +362,7 @@ describe('LoginPage', () => {
         { 'POST /api/auth/login': mockResponse(200, { user: makeMe({ role: 'designer' }) }) },
       );
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       expect(router.state.location.pathname).toBe('/my-work');
     });
 
@@ -379,7 +379,7 @@ describe('LoginPage', () => {
       const { router } = renderAt('/login', {
         'GET /api/auth/me': mockResponse(200, makeMe({ role: 'designer' })),
       });
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       expect(router.state.location.pathname).toBe('/my-work');
     });
 
@@ -418,7 +418,7 @@ describe('LoginPage', () => {
     it('signs the next user in at their landing page, not at the old page', async () => {
       const { router } = await signOutFrom();
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       expect(router.state.location.pathname).toBe('/my-work');
     });
 
@@ -428,7 +428,7 @@ describe('LoginPage', () => {
         router.navigate('/login', { state: { from: { pathname: '/tasks/5' } }, replace: true }),
       );
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       expect(router.state.location.pathname).toBe('/my-work');
     });
 
@@ -497,7 +497,7 @@ describe('LoginPage', () => {
       });
       // /me is still pending, so the form is already usable.
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       expect(router.state.location.pathname).toBe('/my-work');
       expect(getCsrfToken()).toBe('d'.repeat(64));
 
@@ -506,7 +506,7 @@ describe('LoginPage', () => {
 
       expect(router.state.location.pathname).toBe('/my-work');
       expect(getCsrfToken()).toBe('d'.repeat(64));
-      expect(screen.getByTestId('coming-soon')).toBeInTheDocument();
+      expect(screen.getByTestId('my-work')).toBeInTheDocument();
       expect(within(await screen.findByRole('banner')).getByText(me.displayName)).toBeVisible();
     });
 
@@ -522,7 +522,7 @@ describe('LoginPage', () => {
         'POST /api/auth/login': mockResponse(200, { user: me }),
       });
       await fillAndSubmit('dina', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByTestId('my-work');
       await act(async () =>
         answerMe(
           mockResponse(200, makeMe({ displayName: 'Stale Person', csrfToken: 'e'.repeat(64) })),

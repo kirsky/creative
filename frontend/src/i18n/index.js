@@ -10,12 +10,14 @@ import enBoard from './locales/en/board.json';
 import enCommon from './locales/en/common.json';
 import enDashboard from './locales/en/dashboard.json';
 import enErrors from './locales/en/errors.json';
+import enMywork from './locales/en/mywork.json';
 import enTask from './locales/en/task.json';
 import ruAuth from './locales/ru/auth.json';
 import ruBoard from './locales/ru/board.json';
 import ruCommon from './locales/ru/common.json';
 import ruDashboard from './locales/ru/dashboard.json';
 import ruErrors from './locales/ru/errors.json';
+import ruMywork from './locales/ru/mywork.json';
 import ruTask from './locales/ru/task.json';
 import { NAMESPACES } from './namespaces';
 
@@ -33,6 +35,7 @@ const resources = {
     task: enTask,
     dashboard: enDashboard,
     errors: enErrors,
+    mywork: enMywork,
   },
   ru: {
     common: ruCommon,
@@ -41,6 +44,7 @@ const resources = {
     task: ruTask,
     dashboard: ruDashboard,
     errors: ruErrors,
+    mywork: ruMywork,
   },
 };
 

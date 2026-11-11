@@ -12,8 +12,16 @@ afterEach(() => {
 });
 
 describe('i18n instance', () => {
-  it('has the six namespaces with bundled English and Russian resources', () => {
-    expect(NAMESPACES).toEqual(['common', 'auth', 'board', 'task', 'dashboard', 'errors']);
+  it('has the seven namespaces with bundled English and Russian resources', () => {
+    expect(NAMESPACES).toEqual([
+      'common',
+      'auth',
+      'board',
+      'task',
+      'dashboard',
+      'errors',
+      'mywork',
+    ]);
     for (const lng of ['en', 'ru']) {
       for (const ns of NAMESPACES) {
         expect(i18n.hasResourceBundle(lng, ns)).toBe(true);

@@ -5,11 +5,12 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
 import { RoleRoute } from '../features/auth/RoleRoute';
 import { BoardPage } from '../features/board/BoardPage';
+import { MyWorkPage } from '../features/mywork/MyWorkPage';
 import { TaskPage } from '../features/task/TaskPage';
 import { CreateTaskPage } from '../features/tasks/CreateTaskPage';
 import { AppLayout } from './AppLayout';
 
-// Pages are placeholders until their tasks build them: my work and dashboard.
+// Pages are placeholders until their tasks build them: the dashboard.
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
   { path: '/login', element: <LoginPage /> },
@@ -34,7 +35,7 @@ export const routes = [
             path: '/my-work',
             element: (
               <RoleRoute roles={['designer']}>
-                <ComingSoon titleKey="common:nav.myWork" />
+                <MyWorkPage />
               </RoleRoute>
             ),
           },

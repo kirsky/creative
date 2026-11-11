@@ -46,8 +46,9 @@ describe('access', () => {
   ])('redirects a %s to %s without asking for options', async (role, landing) => {
     const { router, fetchMock } = renderForm({
       me: makeMe({ role: /** @type {'designer' | 'manager'} */ (role) }),
+      table: EMPTY_BOARD_TABLE,
     });
-    await screen.findByTestId('coming-soon');
+    await screen.findByRole('heading', { level: 1 });
     expect(router.state.location.pathname).toBe(landing);
     expect(callsTo(fetchMock, 'GET', '/api/options')).toHaveLength(0);
   });

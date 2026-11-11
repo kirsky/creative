@@ -1,0 +1,132 @@
+// The designer's My work page. Colours come from Mantine's scheme-aware variables, so light and
+// dark both work.
+.my-work {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+
+  &__error-text {
+    margin: 0 0 var(--mantine-spacing-sm);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+  }
+
+  &__heading {
+    margin: 0;
+    font-size: var(--mantine-font-size-lg);
+    font-weight: 600;
+  }
+
+  // The pool is the main thing when nothing is assigned.
+  &__section[data-prominent='true'] &__heading {
+    font-size: var(--mantine-h2-font-size);
+  }
+
+  &__count {
+    color: var(--app-text-muted);
+    font-weight: 400;
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--mantine-spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+
+    // A task that needs the designer stands out from the others.
+    &[data-attention='true'] {
+      padding: var(--mantine-spacing-xs);
+      border: 2px solid var(--mantine-color-orange-filled);
+      border-radius: var(--mantine-radius-md);
+      background-color: var(--mantine-color-orange-light);
+    }
+  }
+
+  &__attention {
+    margin: 0;
+    color: var(--mantine-color-orange-light-color);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+
+    &::before {
+      content: '! ';
+    }
+  }
+
+  &__empty {
+    margin: 0;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+
+  &__nothing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+    border: 1px dashed var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    text-align: center;
+  }
+
+  &__nothing-title {
+    margin: 0;
+    font-size: var(--mantine-font-size-lg);
+    font-weight: 600;
+  }
+
+  &__board-link {
+    align-self: flex-start;
+  }
+}
+
+.my-work-counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--mantine-spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: var(--mantine-spacing-sm);
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    background-color: var(--mantine-color-body);
+
+    // Revisions waiting for the designer are the one number that asks for action.
+    &[data-attention='true'] {
+      border-color: var(--mantine-color-orange-filled);
+    }
+
+    &[data-loading='true'] {
+      color: var(--app-text-muted);
+    }
+  }
+
+  &__value {
+    font-size: var(--mantine-h2-font-size);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  &__label {
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+  }
+}
