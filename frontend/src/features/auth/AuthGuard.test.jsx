@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { AppProviders } from '../../app/providers';
 import { routes } from '../../app/routes';
 import { setCsrfToken } from '../../api/client';
+import { EMPTY_BOARD_TABLE } from '../../test/board';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
 
 /**
@@ -11,6 +12,7 @@ import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/ht
  */
 function renderAt(path, me) {
   installFetch({
+    ...EMPTY_BOARD_TABLE,
     'GET /api/auth/me': me ? mockResponse(200, me) : errorResponse(401, 'unauthenticated'),
   });
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -54,7 +56,7 @@ describe('AuthGuard', () => {
 
   it('renders the guarded page for a signed-in user', async () => {
     renderAt('/board', makeMe());
-    expect(await screen.findByTestId('coming-soon')).toHaveTextContent('Board');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Board' })).toBeInTheDocument();
   });
 });
 
@@ -67,7 +69,7 @@ describe('RoleRoute', () => {
 
   it('sends a buyer away from /my-work and a manager away from /tasks/new', async () => {
     const buyerRouter = renderAt('/my-work', makeMe({ role: 'buyer' }));
-    await screen.findByTestId('coming-soon');
+    await screen.findByRole('heading', { level: 1, name: 'Board' });
     expect(buyerRouter.state.location.pathname).toBe('/board');
   });
 
@@ -98,7 +100,7 @@ describe('landing redirect', () => {
       '/',
       makeMe({ role: /** @type {'buyer'|'designer'|'manager'} */ (role) }),
     );
-    await screen.findByTestId('coming-soon');
+    await screen.findByRole('heading', { level: 1 });
     expect(router.state.location.pathname).toBe(landing);
   });
 });

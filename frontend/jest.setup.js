@@ -29,3 +29,30 @@ class ResizeObserverStub {
 }
 window.ResizeObserver = ResizeObserverStub;
 window.HTMLElement.prototype.scrollIntoView = () => {};
+
+// The test environment hands jsdom Node's AbortController (see jsdomEnvironment.js), and jsdom's
+// addEventListener refuses a signal that is not its own, which Mantine's swipeable toasts pass.
+// Stand in for the option: listen without it and remove the listener when the signal aborts.
+const nativeAddEventListener = EventTarget.prototype.addEventListener;
+EventTarget.prototype.addEventListener = function addEventListener(
+  /** @type {string} */ type,
+  /** @type {any} */ listener,
+  /** @type {any} */ options,
+) {
+  try {
+    return nativeAddEventListener.call(this, type, listener, options);
+  } catch (error) {
+    if (!(error instanceof TypeError) || typeof options !== 'object' || !options?.signal) {
+      throw error;
+    }
+    const { signal, ...rest } = options;
+    if (signal.aborted) {
+      return undefined;
+    }
+    nativeAddEventListener.call(this, type, listener, rest);
+    signal.addEventListener('abort', () => this.removeEventListener(type, listener, rest), {
+      once: true,
+    });
+    return undefined;
+  }
+};

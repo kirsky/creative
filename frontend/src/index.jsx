@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
+import '@mantine/notifications/styles.css';
 import './styles/base.scss';
 import './i18n';
 import { createRoot } from 'react-dom/client';

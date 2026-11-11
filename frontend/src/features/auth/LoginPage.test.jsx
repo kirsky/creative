@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { apiFetch, getCsrfToken, setCsrfToken } from '../../api/client';
 import { AppProviders } from '../../app/providers';
 import { routes } from '../../app/routes';
+import { EMPTY_BOARD_TABLE } from '../../test/board';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/http';
 
 /** @typedef {'buyer' | 'designer' | 'manager'} Role */
@@ -15,6 +16,7 @@ import { errorResponse, installFetch, makeMe, mockResponse } from '../../test/ht
  */
 function renderAt(entry, table = {}) {
   const fetchMock = installFetch({
+    ...EMPTY_BOARD_TABLE,
     'GET /api/auth/me': errorResponse(401, 'unauthenticated'),
     ...table,
   });
@@ -317,7 +319,7 @@ describe('LoginPage', () => {
         }),
       });
       await fillAndSubmit('someone', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', { level: 1 });
       expect(router.state.location.pathname).toBe(landing);
     });
 
@@ -367,7 +369,7 @@ describe('LoginPage', () => {
         'POST /api/auth/login': mockResponse(200, { user: makeMe({ role: 'buyer' }) }),
       });
       await fillAndSubmit('alice', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', { level: 1, name: 'Board' });
       expect(router.state.location.pathname).toBe('/board');
     });
 
@@ -473,7 +475,7 @@ describe('LoginPage', () => {
         'POST /api/auth/login': mockResponse(200, { user: makeMe({ locale: 'ru' }) }),
       });
       await fillAndSubmit('alice', 'secret');
-      await screen.findByTestId('coming-soon');
+      await screen.findByRole('heading', { level: 1, name: 'Доска' });
       expect(document.documentElement.lang).toBe('ru');
       expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
     });

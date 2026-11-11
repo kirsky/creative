@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter } from 'react-router';
 import { apiFetch, setCsrfToken } from '../api/client';
+import { EMPTY_BOARD_TABLE } from '../test/board';
 import { errorResponse, installFetch, makeMe, mockResponse } from '../test/http';
 import { App } from './App';
 import { routes } from './routes';
@@ -9,6 +10,7 @@ import { routes } from './routes';
 /** @param {string} path @param {ReturnType<typeof makeMe>} me */
 function renderApp(path, me) {
   const fetchMock = installFetch({
+    ...EMPTY_BOARD_TABLE,
     'GET /api/auth/me': mockResponse(200, me),
     'POST /api/auth/logout': mockResponse(204),
     'PATCH /api/me/locale': mockResponse(200, me),
@@ -48,7 +50,9 @@ describe('App shell', () => {
     renderApp('/board', makeMe());
     const link = await screen.findByRole('link', { name: 'Board' });
     expect(link).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'New task' })).not.toHaveAttribute('aria-current');
+    expect(
+      within(screen.getByRole('navigation')).getByRole('link', { name: 'New task' }),
+    ).not.toHaveAttribute('aria-current');
   });
 
   it('signs out through the API and lands on /login', async () => {
@@ -87,8 +91,10 @@ describe('language switching', () => {
     ]);
     expect(within(banner).getByRole('radiogroup', { name: 'Язык' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('ru');
-    expect(screen.getByTestId('coming-soon')).toHaveTextContent('Доска');
-    expect(screen.getByTestId('coming-soon')).toHaveTextContent('Скоро здесь появится');
+    expect(screen.getByRole('heading', { level: 1, name: 'Доска' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('main')).getByRole('link', { name: 'Новая задача' }),
+    ).toBeInTheDocument();
     const patch = fetchMock.mock.calls.find(([path]) => path === '/api/me/locale');
     expect(JSON.parse(String(patch?.[1].body))).toEqual({ locale: 'ru' });
 

@@ -4,6 +4,7 @@ import {
   formatCredits,
   formatDate,
   formatDateTime,
+  formatDeadline,
   formatDuration,
   formatFileSize,
   formatNumber,
@@ -20,6 +21,38 @@ const normaliseSpaces = (text) => text.replace(/[\u00a0\u202f]/g, ' ');
 describe('timezone of the test run', () => {
   it('is Europe/Berlin (set in the Jest global setup)', () => {
     expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe('Europe/Berlin');
+  });
+});
+
+describe('formatDeadline', () => {
+  const now = Date.parse('2026-11-11T09:00:00Z');
+
+  it('leaves the year out in the current year and drops the seconds', () => {
+    expect(normaliseSpaces(formatDeadline('2026-11-14T11:00:00Z', 'en', now))).toBe(
+      'Nov 14, 12:00',
+    );
+  });
+
+  it('shows the year when it is another one', () => {
+    expect(formatDeadline('2027-01-05T11:00:00Z', 'en', now)).toContain('2027');
+  });
+
+  it('uses the local time on both sides of the daylight-saving change', () => {
+    expect(
+      formatDeadline('2026-03-29T00:59:00Z', 'en', Date.parse('2026-03-01T00:00:00Z')),
+    ).toContain('01:59');
+    expect(
+      formatDeadline('2026-03-29T01:00:00Z', 'en', Date.parse('2026-03-01T00:00:00Z')),
+    ).toContain('03:00');
+  });
+
+  it('writes the month in the interface language', () => {
+    expect(formatDeadline('2026-11-14T11:00:00Z', 'ru', now)).toMatch(/нояб/);
+  });
+
+  it('shows a dash for a missing or unreadable value', () => {
+    expect(formatDeadline(null, 'en', now)).toBe('—');
+    expect(formatDeadline('soon', 'en', now)).toBe('—');
   });
 });
 

@@ -8,6 +8,7 @@ import {
   openOptions,
   optionNames,
 } from '../../test/createTaskForm';
+import { EMPTY_BOARD_TABLE } from '../../test/board';
 import { errorResponse, makeMe, mockResponse } from '../../test/http';
 import { makeOptions, renderApp } from '../../test/renderApp';
 
@@ -32,8 +33,10 @@ afterEach(() => {
 
 describe('access', () => {
   it('opens from the buyer navigation link', async () => {
-    renderApp('/board', { table: OPTIONS_OK });
-    await userEvent.click(await screen.findByRole('link', { name: 'New task' }));
+    renderApp('/board', { table: EMPTY_BOARD_TABLE });
+    await userEvent.click(
+      within(await screen.findByRole('navigation')).getByRole('link', { name: 'New task' }),
+    );
     expect(await heading()).toBeInTheDocument();
   });
 

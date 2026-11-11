@@ -5,10 +5,11 @@ import { AuthGuard } from '../features/auth/AuthGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RoleHome } from '../features/auth/RoleHome';
 import { RoleRoute } from '../features/auth/RoleRoute';
+import { BoardPage } from '../features/board/BoardPage';
 import { CreateTaskPage } from '../features/tasks/CreateTaskPage';
 import { AppLayout } from './AppLayout';
 
-// Pages are placeholders until their tasks build them: board, task page, my work and dashboard.
+// Pages are placeholders until their tasks build them: task page, my work and dashboard.
 /** @type {import('react-router').RouteObject[]} */
 export const routes = [
   { path: '/login', element: <LoginPage /> },
@@ -19,7 +20,7 @@ export const routes = [
         element: <AppLayout />,
         children: [
           { path: '/', element: <RoleHome /> },
-          { path: '/board', element: <ComingSoon titleKey="board:title" /> },
+          { path: '/board', element: <BoardPage /> },
           {
             path: '/tasks/new',
             element: (

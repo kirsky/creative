@@ -56,6 +56,29 @@ export function formatDateTime(iso, lng) {
 }
 
 /**
+ * A deadline for a crowded card: local date and 24-hour time without seconds ("Nov 14, 12:00"),
+ * with the year only when it is not the current one.
+ * @param {string | null | undefined} iso
+ * @param {Language} lng
+ * @param {number} [nowMs] defaults to the current time
+ */
+export function formatDeadline(iso, lng, nowMs = Date.now()) {
+  const date = parseTimestamp(iso);
+  if (date === null) {
+    return NONE;
+  }
+  const thisYear = new Date(nowMs).getFullYear() === date.getFullYear();
+  return new Intl.DateTimeFormat(lng, {
+    ...(thisYear ? {} : { year: 'numeric' }),
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
+
+/**
  * @param {number} value
  * @param {Language} lng
  */

@@ -1,3 +1,59 @@
 {
-  "title": "Board"
+  "title": "Board",
+  "newTask": "New task",
+  "columns": {
+    "new": "New",
+    "in_progress": "In progress",
+    "under_review": "Under review",
+    "revisions_required": "Revisions required",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "filters": {
+    "label": "Filters",
+    "search": "Search offer",
+    "priority": "Priority",
+    "creativeType": "Creative type",
+    "designer": "Designer",
+    "showCancelled": "Show cancelled ({{count}})",
+    "clearAll": "Clear filters",
+    "noMatches": "No tasks match these filters"
+  },
+  "empty": {
+    "column": "No tasks",
+    "cancelled": "No cancelled tasks"
+  },
+  "card": {
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "under_review": "Under review",
+      "revisions_required": "Revisions required",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "typeQuantity": "{{type}} ×{{quantity}}",
+    "typeCreatives": "{{type}}, {{creatives}}",
+    "due": "due {{date}}",
+    "overdue": "overdue {{duration}}",
+    "round": "round {{round}}",
+    "credits": "{{credits}} cr",
+    "returning": "Revision pending (released)",
+    "needsReview": "Needs your review",
+    "pickUp": "Pick up",
+    "pickUpOffer": "Pick up {{offer}}",
+    "dragHandle": "Drag {{offer}} to In progress"
+  },
+  "error": {
+    "title": "Could not load the board"
+  },
+  "dnd": {
+    "instructions": "To pick up this task by keyboard, press Space or Enter on the handle. Press the right arrow to move to the In progress column, then Space or Enter to drop. Press Escape to cancel.",
+    "pickedUp": "Picked up {{offer}}.",
+    "overTarget": "{{offer}} is over the In progress column. Drop it to take the task.",
+    "overNothing": "{{offer}} is not over a column where it can be dropped.",
+    "dropped": "{{offer}} was dropped on the In progress column.",
+    "droppedNowhere": "{{offer}} was not dropped on a column where it can be taken. Nothing changed.",
+    "cancelled": "Moving {{offer}} was cancelled. Nothing changed."
+  }
 }
