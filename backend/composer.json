@@ -2,7 +2,7 @@
     "name": "creative/task-system",
     "description": "Creative task system: Slim 4 JSON API",
     "type": "project",
-    "license": "proprietary",
+    "license": "GPL-3.0-only",
     "require": {
         "php": "^8.5",
         "ext-fileinfo": "*",
