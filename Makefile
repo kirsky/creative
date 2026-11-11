@@ -5,7 +5,7 @@ COMPOSE := docker compose
 EXEC := $(COMPOSE) exec -T php
 NODE := $(COMPOSE) run --rm -T node
 
-.PHONY: help init up down migrate php-test js-test check watch e2e demo-reset db-shell
+.PHONY: help init up down install migrate php-test js-test check watch e2e demo-reset db-shell
 
 help: ## List the targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-11s %s\n", $$1, $$2}'
@@ -26,10 +26,13 @@ up: ## Build and start the stack (php, nginx, db) on 127.0.0.1:3000
 down: ## Stop the stack; ARGS=-v also deletes the database and uploads volumes
 	$(COMPOSE) down $(ARGS)
 
-migrate: ## Run Phinx migrations on the creative database
-	$(EXEC) vendor/bin/phinx migrate
+install: ## Install the PHP dependencies (composer install) in the php container
+	$(EXEC) composer install --no-interaction
 
-php-test: ## Run PHPUnit, e.g. make php-test ARGS="--testsuite Identity"
+migrate: ## Run Phinx migrations on the creative database
+	$(EXEC) vendor/bin/phinx migrate -e creative
+
+php-test: ## Run PHPUnit (test database only), e.g. make php-test ARGS="--testsuite Identity"
 	$(EXEC) composer test -- $(ARGS)
 
 js-test: ## Run Jest, e.g. make js-test ARGS="client"
@@ -42,6 +45,7 @@ check: ## Run all quality gates
 		|| { echo "error: docker/node/Dockerfile NODE_VERSION differs from .nvmrc" >&2; exit 1; }
 	$(COMPOSE) run --rm -T --no-deps nginx nginx -t
 	$(COMPOSE) run --rm -T --no-deps php php -l public/index.php
+	$(EXEC) composer check
 
 watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch

@@ -1,0 +1,87 @@
+openapi: 3.1.0
+info:
+  title: Creative task system API
+  version: 0.1.0
+  description: >
+    JSON API of the creative task system. The API returns codes, never sentences:
+    errors are {"error":{"code":"…","fields":[…]}} and the frontend owns every translated text.
+    Every operation except POST /api/auth/login and GET /api/health requires a session.
+servers:
+  - url: /
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      summary: Liveness check
+      description: Public. Returns no data about the system.
+      responses:
+        '200':
+          description: The application is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    const: ok
+components:
+  schemas:
+    Error:
+      type: object
+      description: The envelope of every error response.
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [code, fields]
+          additionalProperties: false
+          properties:
+            code:
+              $ref: '#/components/schemas/ErrorCode'
+            fields:
+              type: array
+              description: Per-field problems; empty unless the code is validation_failed.
+              items:
+                $ref: '#/components/schemas/FieldError'
+            params:
+              type: object
+              description: Values the message needs (for example a limit). Present only when there are some.
+              additionalProperties: true
+    ErrorCode:
+      type: string
+      description: What went wrong. The frontend maps each code to a translated message.
+      enum:
+        - unauthenticated
+        - invalid_credentials
+        - forbidden
+        - not_found
+        - validation_failed
+        - invalid_transition
+        - already_taken
+        - rate_limited
+        - file_too_large
+        - file_type_not_allowed
+        - file_empty
+        - task_not_editable
+        - internal_error
+    FieldError:
+      type: object
+      required: [field, code, params]
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          description: Name of the request field; nested fields are dotted (links.1).
+        code:
+          type: string
+          description: >
+            What is wrong with the field: required, too_short, too_long, out_of_range,
+            invalid_choice, invalid_url, must_be_future, invalid_amount, unknown_field, invalid.
+        params:
+          type: object
+          description: Values the message needs, for example {"min":2}.
+          additionalProperties: true

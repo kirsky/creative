@@ -1,0 +1,12 @@
+# Level 10 is the maximum. No baseline and no ignored errors: a finding is fixed, not hidden.
+parameters:
+    level: 10
+    paths:
+        - bin/console
+        - config
+        - db
+        - public
+        - src
+        - tests
+        - phinx.php
+    tmpDir: var/phpstan

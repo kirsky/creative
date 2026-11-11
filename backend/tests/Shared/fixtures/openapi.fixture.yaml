@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Fixture
+  version: 1.0.0
+paths:
+  /api/things:
+    get:
+      responses:
+        '200':
+          description: All things
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Thing'
+        '4XX':
+          $ref: '#/components/responses/Error'
+    delete:
+      responses:
+        '204':
+          description: Gone
+  /api/things/mine:
+    get:
+      responses:
+        '200':
+          description: The literal path beats the templated one
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mine]
+                properties:
+                  mine:
+                    type: boolean
+  /api/things/{id}:
+    get:
+      responses:
+        '200':
+          description: One thing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+        '404':
+          $ref: '#/components/responses/Error'
+        '429':
+          description: Slow down
+          headers:
+            Retry-After:
+              required: true
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/download:
+    get:
+      responses:
+        '200':
+          description: A file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id, label]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        label:
+          type: [string, 'null']
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code]
+          properties:
+            code:
+              type: string
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
