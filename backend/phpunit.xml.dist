@@ -30,6 +30,9 @@
         <testsuite name="Tasks">
             <directory>tests/Tasks</directory>
         </testsuite>
+        <testsuite name="History">
+            <directory>tests/History</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

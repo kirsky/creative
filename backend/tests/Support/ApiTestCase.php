@@ -18,6 +18,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
+use PDO;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -197,6 +198,32 @@ abstract class ApiTestCase extends DatabaseTestCase
         $statement = $this->database->pdo()->query('SELECT COUNT(*) FROM `' . str_replace('`', '``', $table) . '`');
 
         return $statement === false ? 0 : (int) $statement->fetchColumn();
+    }
+
+    /**
+     * The columns of a table of the test database, in table order: name => [type, nullable ("YES"|"NO")].
+     * The display width of integers (int(11)) means nothing and is left out of the type: "int unsigned".
+     *
+     * @return array<string, array{string, string}>
+     */
+    protected function columnsOf(string $table): array
+    {
+        $statement = $this->database->pdo()->prepare(
+            'SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION',
+        );
+        $statement->execute([$table]);
+
+        $columns = [];
+        while (($row = $statement->fetch(PDO::FETCH_NUM)) !== false) {
+            if (!is_string($row[0] ?? null) || !is_string($row[1] ?? null) || !is_string($row[2] ?? null)) {
+                throw new RuntimeException('Unexpected shape of an information_schema.COLUMNS row.');
+            }
+
+            $columns[$row[0]] = [preg_replace('/^(big)?int\(\d+\)/', '$1int', $row[1]) ?? $row[1], $row[2]];
+        }
+
+        return $columns;
     }
 
     /**
