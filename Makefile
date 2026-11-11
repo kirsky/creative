@@ -56,14 +56,15 @@ watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch
 
 # The command whose stdout is the new credentials. Override it ONLY to test the failure paths of
-# `make e2e`, e.g. `make e2e E2E_ROTATE=true` (a rotation that prints nothing).
+# `make e2e`, e.g. `make e2e CONFIRM=yes E2E_ROTATE=true` (a rotation that prints nothing).
 E2E_ROTATE = $(EXEC) composer demo:credentials:rotate
 # The Playwright container, by name, so an interrupted run can stop it (the docker CLI does not
 # pass Ctrl-C on to it, and it would go on testing against the data being reset).
 E2E_CONTAINER = creative-e2e
 
 # DESTRUCTIVE, never part of `check`: it resets the demo data and gives every account a new
-# password (any credentials handed to reviewers stop working).
+# password (any credentials handed to reviewers stop working). It refuses to start (exit 2, nothing
+# touched, no build) unless called as `make e2e CONFIRM=yes`.
 # - The passwords live only in a shell variable and in the environment of the docker CLI (`-e NAME`
 #   without a value, so they are in no process's arguments; grep reads them from stdin).
 # - What keeps them out of the results is the suite itself: no trace, video or HTML report, a
@@ -72,7 +73,14 @@ E2E_CONTAINER = creative-e2e
 #   and cannot be searched); it fails closed: a match, or a file it cannot read, fails the run.
 # - From the first reset on, an EXIT trap always resets the data again and prints the reminder,
 #   also when something fails or the run is interrupted; the exit status stays the failure's.
-e2e: ## DESTRUCTIVE: reset data, rotate all passwords, run Playwright; ARGS="story.spec.js"
+e2e: ## DESTRUCTIVE, needs CONFIRM=yes: reset data, rotate all passwords, run Playwright; ARGS="story.spec.js"
+	@if [ "$(CONFIRM)" != "yes" ]; then \
+		echo "make e2e is DESTRUCTIVE: it replaces all demo task data and uploads (demo:reset)," >&2; \
+		echo "gives EVERY account a new password that is never shown (credentials handed to reviewers" >&2; \
+		echo "stop working) and resets the interface language of every account to English." >&2; \
+		echo "Nothing was done. To run it anyway: make e2e CONFIRM=yes [ARGS=story.spec.js]" >&2; \
+		exit 2; \
+	fi
 	@test -n "$$($(COMPOSE) ps -q nginx)" || { echo "error: the stack is not running, run make up" >&2; exit 1; }
 	$(NODE) npm run build
 	@set -u; \

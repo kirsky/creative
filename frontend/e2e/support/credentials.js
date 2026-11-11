@@ -22,7 +22,9 @@ export const ACCOUNTS = Object.freeze({
  */
 export function parseCredentials(text) {
   if (text === undefined || text.trim() === '') {
-    throw new Error('E2E_CREDENTIALS is empty: run the suite with `make e2e`, which provides it.');
+    throw new Error(
+      'E2E_CREDENTIALS is empty: run the suite with `make e2e CONFIRM=yes`, which provides it.',
+    );
   }
   /** @type {Map<string, string>} */
   const credentials = new Map();

@@ -1,7 +1,7 @@
 const { defineConfig, devices } = require('@playwright/test');
 
-// End-to-end tests: run only by `make e2e`, in the `playwright` container, against the running
-// stack (see the Makefile for what that does to the data and the passwords).
+// End-to-end tests: run only by `make e2e CONFIRM=yes`, in the `playwright` container, against the
+// running stack (see the Makefile for what that does to the data and the passwords).
 //
 // Passwords: they come from E2E_CREDENTIALS and are never stored. What keeps them out of the
 // results is this configuration and the suite: traces and videos would keep what was typed, so
