@@ -48,3 +48,29 @@
     }
   }
 }
+
+// A phone is wide enough for the navigation and the controls, not for the app's name as well
+// (the page title still names it).
+@media (width < 36em) {
+  .app-header {
+    gap: var(--mantine-spacing-xs);
+    padding-inline: var(--mantine-spacing-xs);
+
+    &__start,
+    &__end {
+      gap: var(--mantine-spacing-xs);
+    }
+
+    &__title {
+      display: none;
+    }
+  }
+
+  .app-nav {
+    gap: 0;
+
+    &__link {
+      padding-inline: var(--mantine-spacing-xs);
+    }
+  }
+}
