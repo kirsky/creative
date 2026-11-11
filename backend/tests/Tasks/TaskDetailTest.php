@@ -68,7 +68,7 @@ final class TaskDetailTest extends ApiTestCase
             'references' => [['type' => 'url', 'url' => 'https://example.com/ref']],
             'assignments' => [],
             'rounds' => [],
-            'metrics' => null,
+            'metrics' => ['queueWaitSeconds' => 0, 'cycleSeconds' => null, 'reviewSeconds' => 0, 'revisionTurnaroundSeconds' => 0],
         ], self::decodeJson($response));
     }
 

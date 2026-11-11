@@ -55,7 +55,7 @@ final class CreateTaskTest extends ApiTestCase
             'references' => [],
             'assignments' => [],
             'rounds' => [],
-            'metrics' => null,
+            'metrics' => ['queueWaitSeconds' => 0, 'cycleSeconds' => null, 'reviewSeconds' => 0, 'revisionTurnaroundSeconds' => 0],
         ], array_diff_key($json, ['id' => 0]));
 
         $rows = $this->fetchRows('SELECT * FROM tasks');

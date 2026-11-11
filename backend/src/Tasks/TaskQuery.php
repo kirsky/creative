@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\History\TaskEventLog;
 use App\Identity\Role;
+use App\Metrics\TimeMetricsCalculator;
 use App\Identity\User;
 use App\Shared\Clock;
 use App\Shared\Db\Database;
@@ -37,6 +39,8 @@ final class TaskQuery
         private readonly TaskPolicy $policy,
         private readonly RoundReader $rounds,
         private readonly AssignmentRepository $assignments,
+        private readonly TaskEventLog $events,
+        private readonly TimeMetricsCalculator $metrics,
     ) {}
 
     /**
@@ -101,6 +105,7 @@ final class TaskQuery
             $this->references($id),
             $this->assignments->forTask($id),
             $this->rounds->forTask($id),
+            $this->metrics->calculate($this->events->forTask($id), $this->clock->now()),
         );
     }
 

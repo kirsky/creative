@@ -42,6 +42,9 @@
         <testsuite name="Rounds">
             <directory>tests/Rounds</directory>
         </testsuite>
+        <testsuite name="Metrics">
+            <directory>tests/Metrics</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

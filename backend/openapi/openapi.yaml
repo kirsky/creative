@@ -1196,7 +1196,7 @@ components:
             type: string
             enum: [pick_up, release, submit, edit_brief, report_ai_usage, approve, request_revisions, cancel]
     TaskDetail:
-      description: The card plus the brief. assignments and rounds are always present, oldest first; metrics is always present and stays null until its module exists.
+      description: The card plus the brief. assignments and rounds are always present, oldest first; metrics is always present, for a new task too.
       allOf:
         - $ref: '#/components/schemas/TaskCard'
         - type: object
@@ -1242,7 +1242,29 @@ components:
               items:
                 $ref: '#/components/schemas/Round'
             metrics:
-              type: ['object', 'null']
+              $ref: '#/components/schemas/TimeMetrics'
+    TimeMetrics:
+      type: object
+      description: Elapsed wall-clock time of the task in whole seconds (rounded down), derived from its history. This is not time worked. Intervals still open run to now.
+      required: [queueWaitSeconds, cycleSeconds, reviewSeconds, revisionTurnaroundSeconds]
+      additionalProperties: false
+      properties:
+        queueWaitSeconds:
+          type: integer
+          minimum: 0
+          description: Total time in `new`, from creation to the first pickup and from each release to the next pickup.
+        cycleSeconds:
+          type: ['integer', 'null']
+          minimum: 0
+          description: From the first pickup to the approval (to the cancellation if cancelled, to now while open); null if the task was never picked up. Time spent back in `new` after a release is included.
+        reviewSeconds:
+          type: integer
+          minimum: 0
+          description: Total of every round's submission to the buyer's decision.
+        revisionTurnaroundSeconds:
+          type: integer
+          minimum: 0
+          description: Total of every revision request to the next submission.
     ApproveRequest:
       type: object
       properties:
