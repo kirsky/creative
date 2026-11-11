@@ -1,6 +1,7 @@
 const path = require('node:path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { FontPreloadPlugin } = require('./scripts/font-preload');
 
 /**
  * `npm run build` runs with --mode production, `npm run watch` with --mode development --watch.
@@ -33,10 +34,16 @@ module.exports = (_env, argv) => {
         },
         { test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] },
         { test: /\.scss$/, use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'] },
+        {
+          test: /\.woff2$/,
+          type: 'asset/resource',
+          generator: { filename: 'fonts/[name].[contenthash][ext]' },
+        },
       ],
     },
     plugins: [
       new HtmlWebpackPlugin({ template: './src/index.html' }),
+      new FontPreloadPlugin(HtmlWebpackPlugin),
       new MiniCssExtractPlugin({
         filename: isProduction ? '[name].[contenthash].css' : '[name].css',
       }),

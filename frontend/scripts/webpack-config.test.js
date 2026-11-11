@@ -50,4 +50,12 @@ describe('webpack config', () => {
   test('the development build keeps the development JSX runtime', () => {
     expect(compileJsxFor('development')).toContain('react/jsx-dev-runtime');
   });
+
+  test('woff2 files are emitted as hashed assets under fonts/', () => {
+    const config = require('../webpack.config.js')({}, { mode: 'production' });
+    const rule = config.module.rules.find((candidate) => candidate.test.test('onest.woff2'));
+    expect(rule).toBeDefined();
+    expect(rule.type).toBe('asset/resource');
+    expect(rule.generator.filename).toMatch(/^fonts\/.*contenthash/);
+  });
 });
