@@ -6,6 +6,7 @@
     "require": {
         "php": "^8.5",
         "ext-fileinfo": "*",
+        "ext-gd": "*",
         "ext-intl": "*",
         "ext-mbstring": "*",
         "ext-pdo": "*",
@@ -19,7 +20,6 @@
         "symfony/validator": "^7.3"
     },
     "require-dev": {
-        "ext-gd": "*",
         "friendsofphp/php-cs-fixer": "^3.90",
         "opis/json-schema": "^2.4",
         "phpstan/phpstan": "2.3.5",
