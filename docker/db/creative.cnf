@@ -1,0 +1,5 @@
+[mariadbd]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+# Timestamps are stored in UTC.
+default-time-zone = '+00:00'

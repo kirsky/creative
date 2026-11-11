@@ -1,2 +1,21 @@
 .superpowers/
 .env
+
+# PHP
+backend/vendor/
+backend/var/
+.php-cs-fixer.cache
+.phpunit.cache/
+.phpunit.result.cache
+
+# Node
+frontend/node_modules/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+
+# Build output (the directory itself is kept through .gitkeep)
+frontend/dist/*
+!frontend/dist/.gitkeep
+
+*.log
