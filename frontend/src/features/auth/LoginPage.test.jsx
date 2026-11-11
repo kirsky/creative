@@ -63,7 +63,7 @@ describe('LoginPage', () => {
     expect(username).toHaveAttribute('autocomplete', 'username');
     expect(passwordField()).toHaveAttribute('type', 'password');
     expect(passwordField()).toHaveAttribute('autocomplete', 'current-password');
-    expect(screen.getByRole('heading', { name: 'Creative Tasks' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Creative Hub' })).toBeInTheDocument();
     expect(submitButton()).toBeEnabled();
     expect(screen.getByRole('radiogroup', { name: 'Language' })).toBeInTheDocument();
     // No account list, no one-click login, no credential hints.
@@ -457,7 +457,7 @@ describe('LoginPage', () => {
       expect(await screen.findByLabelText(/^Имя пользователя/)).toBeInTheDocument();
       expect(passwordField()).toHaveAttribute('type', 'password');
       expect(screen.getByRole('button', { name: 'Войти' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Креативные задачи' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Креативный Хаб' })).toBeInTheDocument();
       expect(screen.getByRole('radiogroup', { name: 'Язык' })).toBeInTheDocument();
       expect(document.documentElement.lang).toBe('ru');
       expect(localStorage.getItem('creative.lang')).toBe('ru');

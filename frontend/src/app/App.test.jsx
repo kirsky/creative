@@ -41,7 +41,7 @@ describe('App shell', () => {
         makeMe({ role: /** @type {'buyer'|'designer'|'manager'} */ (role), displayName }),
       );
       const banner = await screen.findByRole('banner');
-      expect(within(banner).getByText('Creative Tasks')).toBeInTheDocument();
+      expect(within(banner).getByText('Creative Hub')).toBeInTheDocument();
       expect(within(banner).getByText(displayName)).toBeInTheDocument();
       expect(within(banner).getByText(label)).toBeInTheDocument();
       const nav = within(screen.getByRole('navigation'));
@@ -80,12 +80,12 @@ describe('language switching', () => {
   it('switches the visible header text between English and Russian', async () => {
     const { fetchMock } = renderApp('/board', makeMe({ displayName: 'Alice Kovacs' }));
     const banner = await screen.findByRole('banner');
-    expect(within(banner).getByText('Creative Tasks')).toBeInTheDocument();
+    expect(within(banner).getByText('Creative Hub')).toBeInTheDocument();
     const switcher = within(banner).getByRole('radiogroup', { name: 'Language' });
 
     await userEvent.click(within(switcher).getByRole('radio', { name: 'RU' }));
 
-    expect(await within(banner).findByText('Креативные задачи')).toBeInTheDocument();
+    expect(await within(banner).findByText('Креативный Хаб')).toBeInTheDocument();
     expect(within(banner).getByText('Медиабайер')).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: 'Выйти' })).toBeInTheDocument();
     const nav = within(screen.getByRole('navigation'));
@@ -103,7 +103,7 @@ describe('language switching', () => {
     expect(JSON.parse(String(patch?.[1].body))).toEqual({ locale: 'ru' });
 
     await userEvent.click(within(banner).getByRole('radio', { name: 'EN' }));
-    expect(await within(banner).findByText('Creative Tasks')).toBeInTheDocument();
+    expect(await within(banner).findByText('Creative Hub')).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
   });
 
@@ -111,7 +111,7 @@ describe('language switching', () => {
     renderApp('/board', makeMe({ locale: 'ru', role: 'designer', displayName: 'Dina' }));
     const banner = await screen.findByRole('banner');
     expect(within(banner).getByText('Креативный дизайнер')).toBeInTheDocument();
-    expect(within(banner).getByText('Креативные задачи')).toBeInTheDocument();
+    expect(within(banner).getByText('Креативный Хаб')).toBeInTheDocument();
   });
 
   it('translates the loader label, the not-found page and the task page', async () => {

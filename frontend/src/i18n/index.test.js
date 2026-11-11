@@ -30,8 +30,8 @@ describe('i18n instance', () => {
   });
 
   it('translates with the namespace prefix', () => {
-    expect(i18n.t('common:appName', { lng: 'en' })).toBe('Creative Tasks');
-    expect(i18n.t('common:appName', { lng: 'ru' })).toBe('Креативные задачи');
+    expect(i18n.t('common:appName', { lng: 'en' })).toBe('Creative Hub');
+    expect(i18n.t('common:appName', { lng: 'ru' })).toBe('Креативный Хаб');
   });
 });
 
@@ -41,12 +41,12 @@ describe('changeLanguage', () => {
     expect(i18n.language).toBe('ru');
     expect(document.documentElement.lang).toBe('ru');
     expect(dayjs.locale()).toBe('ru');
-    expect(document.title).toBe('Креативные задачи');
+    expect(document.title).toBe('Креативный Хаб');
     expect(localStorage.getItem('creative.lang')).toBe('ru');
     await changeLanguage('en');
     expect(document.documentElement.lang).toBe('en');
     expect(dayjs.locale()).toBe('en');
-    expect(document.title).toBe('Creative Tasks');
+    expect(document.title).toBe('Creative Hub');
     expect(localStorage.getItem('creative.lang')).toBe('en');
   });
 
