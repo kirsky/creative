@@ -143,6 +143,41 @@ final class TaskRepository
         }
     }
 
+    /**
+     * Gives an unassigned task in status $from to $designerId, moving it to $to, in one guarded
+     * UPDATE: it changes the row only if it is still in $from and still has no assignee, whatever
+     * was read before. Returns false when it did not (somebody else got there first).
+     */
+    public function claim(int $id, int $designerId, TaskStatus $from, TaskStatus $to, DateTimeImmutable $now): bool
+    {
+        $statement = $this->database->pdo()->prepare(
+            'UPDATE tasks SET status = ?, assignee_id = ?, updated_at = ? WHERE id = ? AND status = ? AND assignee_id IS NULL',
+        );
+        $statement->execute([$to->value, $designerId, self::stamp($now), $id, $from->value]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    /**
+     * Takes the task from $designerId, moving it from $from to $to and leaving it with no assignee, in
+     * one guarded UPDATE that changes the row only if it is still in $from and still assigned to
+     * $designerId. Returns false when it did not.
+     */
+    public function unassign(int $id, int $designerId, TaskStatus $from, TaskStatus $to, DateTimeImmutable $now): bool
+    {
+        $statement = $this->database->pdo()->prepare(
+            'UPDATE tasks SET status = ?, assignee_id = NULL, updated_at = ? WHERE id = ? AND status = ? AND assignee_id = ?',
+        );
+        $statement->execute([$to->value, self::stamp($now), $id, $from->value, $designerId]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    private static function stamp(DateTimeImmutable $time): string
+    {
+        return $time->setTimezone(new DateTimeZone('UTC'))->format(self::DATETIME);
+    }
+
     public function find(int $id, bool $forUpdate = false): ?Task
     {
         $statement = $this->database->pdo()->prepare('SELECT id, created_by, assignee_id, status, deadline_at FROM tasks WHERE id = ?' . ($forUpdate ? ' FOR UPDATE' : ''));

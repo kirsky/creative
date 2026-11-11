@@ -36,6 +36,7 @@ final class TaskQuery
         private readonly Clock $clock,
         private readonly TaskPolicy $policy,
         private readonly RoundSummaryReader $rounds,
+        private readonly AssignmentRepository $assignments,
     ) {}
 
     /**
@@ -94,7 +95,7 @@ final class TaskQuery
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         $card = $this->cards($actor, $rows)[0] ?? throw ApiError::notFound();
 
-        return new TaskDetail($card, Row::string($rows[0], 'description'), $this->references($id));
+        return new TaskDetail($card, Row::string($rows[0], 'description'), $this->references($id), $this->assignments->forTask($id));
     }
 
     /**

@@ -518,6 +518,76 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/tasks/{id}/pickup:
+    post:
+      operationId: pickUpTask
+      summary: Pick up a New task
+      description: >
+        A designer takes a `new` task: it becomes `in_progress` and assigned to them, a new assignment
+        is opened and a `task_picked_up` event `{"assignmentId"}` is recorded, in one transaction. No
+        body. Answers, in the order they are decided: 404 not_found when there is no such task or the
+        user may not view it (except as below); 403 forbidden for a user who may view it but is not a
+        designer (the creating buyer, a manager); 409 invalid_transition when the task is not `new`
+        (a task the designer holds themself included); 409 already_taken when another designer got it
+        first, which a designer who cannot view the task because another designer holds it (it has
+        an assignee and is not `completed` or `cancelled`) also gets, since it was in the pool when
+        they asked. Two designers picking up the same task at the same instant: exactly one gets 200.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task after the pick-up, as GET /api/tasks/{id} shows it, with the new open assignment last in assignments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >
+            already_taken (another designer got the task first) or invalid_transition (the task is
+            not `new`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/tasks/{id}/release:
+    post:
+      operationId: releaseTask
+      summary: Give a task back
+      description: >
+        The assigned designer gives a task in `in_progress` or `revisions_required` back to the pool:
+        it becomes `new` with no assignee, its open assignment is closed as `released` and a
+        `task_released` event `{"assignmentId"}` is recorded, in one transaction. Rounds, files,
+        feedback and AI usage stay with the task. No body. 404 not_found when there is no such task
+        or the user may not view it (a designer who is not the assignee cannot view a task in
+        progress); 403 forbidden for a user who may view it but is not its assigned designer; 409
+        invalid_transition when the task is in any other status.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: The task after the release, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The task is not in progress or awaiting revisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     session:
@@ -824,7 +894,7 @@ components:
             type: string
             enum: [pick_up, release, submit, edit_brief, report_ai_usage, approve, request_revisions, cancel]
     TaskDetail:
-      description: The card plus the brief. assignments, rounds and metrics are always present and stay empty (null) until their modules exist.
+      description: The card plus the brief. assignments is always present, oldest first; rounds and metrics are always present and stay empty (null) until their modules exist.
       allOf:
         - $ref: '#/components/schemas/TaskCard'
         - type: object
@@ -861,12 +931,32 @@ components:
                         type: integer
             assignments:
               type: array
-              items: {}
+              description: Every assignment of the task, oldest first; the last is open (endedAt null) while a designer holds the task.
+              items:
+                $ref: '#/components/schemas/Assignment'
             rounds:
               type: array
               items: {}
             metrics:
               type: ['object', 'null']
+    Assignment:
+      type: object
+      required: [designer, assignedAt, endedAt, endedHow]
+      additionalProperties: false
+      properties:
+        designer:
+          $ref: '#/components/schemas/Person'
+        assignedAt:
+          type: string
+          description: UTC, to the millisecond.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+        endedAt:
+          type: ['string', 'null']
+          description: UTC, to the millisecond; null while the assignment is open.
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+        endedHow:
+          description: How the assignment ended; null while it is open.
+          enum: [released, completed, cancelled, null]
     TaskEvent:
       type: object
       required: [id, type, actor, at, payload]

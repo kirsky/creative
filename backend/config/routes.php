@@ -16,6 +16,8 @@ use App\Tasks\Http\GetTaskAction;
 use App\Tasks\Http\HistoryAction;
 use App\Tasks\Http\ListTasksAction;
 use App\Tasks\Http\OptionsAction;
+use App\Tasks\Http\PickUpAction;
+use App\Tasks\Http\ReleaseAction;
 use Slim\App;
 
 /*
@@ -47,4 +49,6 @@ return static function (App $app): void {
     $app->get('/api/tasks/{id:[0-9]+}', GetTaskAction::class);
     $app->patch('/api/tasks/{id:[0-9]+}', EditTaskAction::class);
     $app->get('/api/tasks/{id:[0-9]+}/history', HistoryAction::class);
+    $app->post('/api/tasks/{id:[0-9]+}/pickup', PickUpAction::class);
+    $app->post('/api/tasks/{id:[0-9]+}/release', ReleaseAction::class);
 };
