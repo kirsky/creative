@@ -24,6 +24,9 @@
         <testsuite name="Shared">
             <directory>tests/Shared</directory>
         </testsuite>
+        <testsuite name="Identity">
+            <directory>tests/Identity</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

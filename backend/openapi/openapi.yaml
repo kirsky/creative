@@ -5,15 +5,22 @@ info:
   description: >
     JSON API of the creative task system. The API returns codes, never sentences:
     errors are {"error":{"code":"…","fields":[…]}} and the frontend owns every translated text.
-    Every operation except POST /api/auth/login and GET /api/health requires a session.
+    Every operation except POST /api/auth/login and GET /api/health requires a session
+    (the creative_session cookie) and answers 401 unauthenticated without one. Every operation that
+    requires a session and uses a method other than GET, HEAD or OPTIONS also requires the session's
+    CSRF token (csrfToken from GET /api/auth/me) in the X-CSRF-Token header, else 403 forbidden.
 servers:
   - url: /
+security:
+  - session: []
+    csrf: []
 paths:
   /api/health:
     get:
       operationId: getHealth
       summary: Liveness check
       description: Public. Returns no data about the system.
+      security: []
       responses:
         '200':
           description: The application is running.
@@ -27,8 +34,187 @@ paths:
                   status:
                     type: string
                     const: ok
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Sign in
+      description: >
+        Public. Checks the credentials and starts a new session; the user's other sessions stay
+        valid, and the session this browser presented (if any) ends. Unknown user, wrong password
+        and an account without credentials all give the same 401 invalid_credentials. The body must
+        be application/json; anything else is 403 forbidden (a cross-site form cannot send JSON).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              additionalProperties: false
+              properties:
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                password:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Signed in. The cookie carries the session; the body the user and the CSRF token.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SetSessionCookie'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                additionalProperties: false
+                properties:
+                  user:
+                    $ref: '#/components/schemas/Me'
+        '401':
+          description: invalid_credentials, whatever the reason.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Sign out
+      description: Ends this session only and clears the cookie.
+      responses:
+        '204':
+          description: Signed out.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/ClearSessionCookie'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/auth/me:
+    get:
+      operationId: getMe
+      summary: The signed-in user and this session's CSRF token
+      security:
+        - session: []
+      responses:
+        '200':
+          description: The signed-in user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /api/me/locale:
+    patch:
+      operationId: setLocale
+      summary: Set the signed-in user's interface language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              additionalProperties: false
+              properties:
+                locale:
+                  $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Saved; the signed-in user as it is now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
 components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: creative_session
+      description: >
+        Opaque session token set by POST /api/auth/login (HttpOnly; Secure; SameSite=Lax; Path=/).
+        Sessions end after 12 hours without a request, on logout, or when revoked.
+    csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: The csrfToken of the session, required on every state-changing request.
+  headers:
+    SetSessionCookie:
+      required: true
+      description: creative_session=<token>; Path=/; HttpOnly; Secure; SameSite=Lax
+      schema:
+        type: string
+    ClearSessionCookie:
+      required: true
+      description: creative_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax
+      schema:
+        type: string
+  responses:
+    Unauthenticated:
+      description: No valid session (code unauthenticated).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Not allowed, or the CSRF token is missing or wrong (code forbidden).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: The body is invalid (code validation_failed, with per-field codes).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
+    Me:
+      type: object
+      description: The signed-in user. Never contains a password or its hash.
+      required: [id, username, displayName, role, locale, csrfToken]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        csrfToken:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: Send it back in X-CSRF-Token on every state-changing request of this session.
+    Role:
+      type: string
+      enum: [buyer, designer, manager]
+    Locale:
+      type: string
+      enum: [en, ru]
     Error:
       type: object
       description: The envelope of every error response.

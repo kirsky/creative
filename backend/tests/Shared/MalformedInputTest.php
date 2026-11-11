@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Shared;
 
+use App\Shared\Http\PublicRoute;
 use App\Shared\Validation\Validator;
 use App\Tests\Support\ApiTestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -24,7 +25,8 @@ final class MalformedInputTest extends ApiTestCase
 
         // A route that validates its body, the way every write endpoint will. Test-only: it exists in
         // this test's app instance and nowhere else. (A plain closure: Slim cannot bind static ones.)
-        $this->app->post('/api/_test/validate', function (ServerRequestInterface $request, ResponseInterface $response): ResponseInterface {
+        // Public, so the test is about body handling and not about sessions.
+        PublicRoute::mark($this->app->post('/api/_test/validate', function (ServerRequestInterface $request, ResponseInterface $response): ResponseInterface {
             $body = $request->getParsedBody();
             (new Validator())->validate(
                 is_array($body) ? $body : [],
@@ -32,7 +34,7 @@ final class MalformedInputTest extends ApiTestCase
             );
 
             return $response;
-        });
+        }));
     }
 
     public function test_an_invalid_utf8_key_in_a_urlencoded_body_still_gets_the_json_envelope(): void

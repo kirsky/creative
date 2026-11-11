@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Identity\AuthMiddleware;
+use App\Identity\CsrfMiddleware;
 use App\Shared\Http\ErrorMiddleware;
 use App\Shared\Http\TrustedProxyMiddleware;
 use Closure;
@@ -41,6 +43,11 @@ function createApp(array $overrides = []): App
     // Innermost: per-request middleware that needs the matched route and may throw ApiError
     // (sessions, authentication, CSRF) is added here, before the routing middleware.
     $app->addBodyParsingMiddleware();
+    // Needs the session AuthMiddleware found, so it sits inside it.
+    $app->add(CsrfMiddleware::class);
+    // Default deny: no session, no access, unless the matched route is marked public. Runs before
+    // the body is parsed, so an anonymous client's body is never looked at.
+    $app->add(AuthMiddleware::class);
     $app->addRoutingMiddleware();
     // Catches everything thrown inside, including routing failures.
     $app->add(ErrorMiddleware::class);
