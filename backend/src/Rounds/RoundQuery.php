@@ -17,7 +17,7 @@ use RuntimeException;
 
 /**
  * The read side of rounds, for the board (summaries, one query for all cards) and the task page
- * (the rounds with their files).
+ * (the rounds with their files and AI usage).
  */
 final class RoundQuery implements RoundReader
 {
@@ -26,8 +26,9 @@ final class RoundQuery implements RoundReader
     public function __construct(private readonly Database $database) {}
 
     /**
-     * The credits are "0.00" until AI usage exists. A task is returning when it is New again and the
-     * round with the highest number was sent back for revisions.
+     * The credits are the sum of the AI usage lines over all rounds of a task, computed by the
+     * database as a DECIMAL and returned as a string with two decimals. A task is returning when it
+     * is New again and the round with the highest number was sent back for revisions.
      */
     public function summaries(array $taskIds): array
     {
@@ -44,11 +45,25 @@ final class RoundQuery implements RoundReader
         );
         $statement->execute($taskIds);
 
-        $summaries = [];
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        $statement = $this->database->pdo()->prepare(
+            'SELECT r.task_id, SUM(u.credits) AS credits
+             FROM ai_usage u JOIN rounds r ON r.id = u.round_id
+             WHERE r.task_id IN (' . implode(',', array_fill(0, count($taskIds), '?')) . ')
+             GROUP BY r.task_id',
+        );
+        $statement->execute($taskIds);
+        $credits = [];
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $credits[Row::int($row, 'task_id')] = Row::string($row, 'credits');
+        }
+
+        $summaries = [];
+        foreach ($rows as $row) {
             $summaries[Row::int($row, 'task_id')] = new RoundSummary(
                 Row::int($row, 'round_count'),
-                '0.00',
+                $credits[Row::int($row, 'task_id')] ?? '0.00',
                 Row::string($row, 'status') === 'new' && Row::nullableString($row, 'latest_decision') === 'revisions_requested',
             );
         }
@@ -90,6 +105,22 @@ final class RoundQuery implements RoundReader
             }
         }
 
+        $usage = [];
+        if ($rows !== []) {
+            $statement = $pdo->prepare(
+                'SELECT u.round_id, p.name, u.credits
+                 FROM ai_usage u
+                 JOIN rounds r ON r.id = u.round_id
+                 JOIN ai_providers p ON p.id = u.provider_id
+                 WHERE r.task_id = ?
+                 ORDER BY u.id ASC',
+            );
+            $statement->execute([$taskId]);
+            foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $line) {
+                $usage[Row::int($line, 'round_id')][] = ['provider' => Row::string($line, 'name'), 'credits' => Row::string($line, 'credits')];
+            }
+        }
+
         $rounds = [];
         foreach ($rows as $row) {
             $decidedAt = Row::nullableString($row, 'decided_at');
@@ -102,6 +133,7 @@ final class RoundQuery implements RoundReader
                 Row::nullableString($row, 'decision'),
                 Row::nullableString($row, 'decision_reason'),
                 $decidedAt === null ? null : self::time($decidedAt),
+                $usage[Row::int($row, 'id')] ?? [],
             );
         }
 

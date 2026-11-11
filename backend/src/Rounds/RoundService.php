@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Rounds;
 
+use App\AiUsage\AiUsageService;
 use App\Files\AttachmentKind;
 use App\Files\FileStore;
 use App\History\TaskEventLog;
@@ -23,8 +24,8 @@ use App\Tasks\Transition;
  *
  * A submission is one transaction that starts by locking the task row, so that two submissions of
  * the same task (a double click) cannot both see it open: the status change, the round, its
- * deliverables, the attachment of the files, the event and updated_at are written together or not
- * at all. The status is also changed by a guarded UPDATE that names the status it expects.
+ * deliverables, the attachment of the files, the AI usage lines, the events and updated_at are written
+ * together or not at all. The status is also changed by a guarded UPDATE that names the status it expects.
  */
 final class RoundService
 {
@@ -38,13 +39,15 @@ final class RoundService
         private readonly NewRoundParser $parser,
         private readonly FileStore $files,
         private readonly TaskEventLog $events,
+        private readonly AiUsageService $aiUsage,
     ) {}
 
     /**
      * Hands in a round: the task goes from In Progress or Revisions Required to Under Review, the
      * round gets the next number (one more than the rounds so far, counted under the row lock), the
-     * files become its deliverables and are attached to the task, and round_submitted
-     * {round, fileCount} is recorded.
+     * files become its deliverables and are attached to the task, round_submitted
+     * {round, fileCount} is recorded, and so are the AI usage lines of the round with, when there is
+     * at least one, ai_usage_changed {round, lines} right after it.
      *
      * The answers, in the order they are decided:
      *  - 404 not_found: there is no such task, or the actor may not view it;
@@ -54,7 +57,7 @@ final class RoundService
      *  - 422 validation_failed: a bad body (see NewRoundParser), or a file that is not the designer's
      *    own or is attached to something already (field `files`, code invalid_choice).
      *
-     * @param array<array-key, mixed> $input {note?: string, fileIds: list<int>}
+     * @param array<array-key, mixed> $input {note?: string, fileIds: list<int>, aiUsage?: list<array{provider: string, credits: string}>}
      * @return int the number of the new round
      * @throws ApiError see above
      */
@@ -80,8 +83,9 @@ final class RoundService
             }
 
             $this->events->record($taskId, TaskEventType::RoundSubmitted, $designer, ['round' => $number, 'fileCount' => count($round->fileIds)]);
+            $this->aiUsage->recordForNewRound($designer, $taskId, $number, $roundId, $round->aiUsage);
 
             return $number;
-        });
+        }, readCommitted: true);
     }
 }

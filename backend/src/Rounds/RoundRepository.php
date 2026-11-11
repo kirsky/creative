@@ -64,6 +64,24 @@ final class RoundRepository
     }
 
     /**
+     * Round $number of $taskId, locked until the transaction ends, or null when the task has no such
+     * round. Call it inside Database::transaction(), after locking the task.
+     *
+     * @return array{id: int, submittedBy: int, decided: bool}|null
+     */
+    public function findForUpdate(int $taskId, int $number): ?array
+    {
+        $statement = $this->database->pdo()->prepare('SELECT id, submitted_by, decision FROM rounds WHERE task_id = ? AND number = ? FOR UPDATE');
+        $statement->execute([$taskId, $number]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+
+        return ['id' => Row::int($row, 'id'), 'submittedBy' => Row::int($row, 'submitted_by'), 'decided' => Row::nullableString($row, 'decision') !== null];
+    }
+
+    /**
      * Records the buyer's decision on a round, with its time, in one guarded UPDATE that changes the
      * row only while it is still undecided. Returns false when it did not.
      */

@@ -615,6 +615,17 @@ paths:
         unknown_field. A file id that is the designer's own, unattached upload is accepted; any other
         (unknown, somebody else's, attached already, or listed twice) is field `files`, code
         invalid_choice, and nothing at all is recorded.
+
+
+        `aiUsage` (optional; no lines when left out) lists the AI credits spent on the round. It is
+        checked together with the files and stored with the round, all or nothing; with at least one
+        line an `ai_usage_changed` event `{"round","lines"}` is recorded right after `round_submitted`.
+        Field codes: `aiUsage`: invalid (not a list), too_many (more than 20, params.max 20);
+        `aiUsage.<index>`: invalid (not an object); `aiUsage.<index>.provider`: required, invalid (not
+        a string, or a control character), too_long (more than 50 characters after trimming, params.max
+        50); `aiUsage.<index>.credits`: required, invalid (not a JSON string), invalid_amount (not
+        0 to 9999999.99 with at most two decimals, no sign, exponent or spaces). Any other key of a
+        line is `aiUsage.<index>.<key>`, unknown_field.
       requestBody:
         required: true
         content:
@@ -651,6 +662,91 @@ paths:
                 $ref: '#/components/schemas/Error'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+  /api/tasks/{id}/rounds/{n}/ai-usage:
+    put:
+      operationId: replaceAiUsage
+      summary: Replace the AI usage of a round
+      description: >
+        The designer who submitted round `n` replaces all its AI usage lines until the buyer decides
+        that round. The new set is stored whole (the old lines are deleted and the new ones inserted in
+        one transaction) and an `ai_usage_changed` event `{"round","lines"}` with the new lines is
+        recorded. Zero lines clears the usage ("no AI used"). A set equal to the stored one (the same
+        providers and amounts, in any order) changes nothing and records nothing. Provider names are
+        trimmed, their white space collapsed, matched case-insensitively against the list of providers
+        (the stored spelling wins) and created when new.
+
+
+        Answers, in the order they are decided: 404 not_found when there is no such task, the user may
+        not view it, or the task has no round `n`; 403 forbidden for a user who may view the task but
+        is not its assigned designer, and for a round that another designer submitted; 409
+        invalid_transition when the round has been decided already (while a task is
+        `revisions_required` its last round is decided, so the usage for the next round is given when
+        submitting it) or the task is completed or cancelled; 422 validation_failed for the lines,
+        checked after those.
+
+
+        Field codes of the 422: `lines`: required (missing or null), invalid (not a list), too_many
+        (more than 20, params.max 20); `lines.<index>`, `lines.<index>.provider`,
+        `lines.<index>.credits` as `aiUsage` on the submission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceAiUsageRequest'
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: n
+          in: path
+          required: true
+          description: The number of the round.
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: The task after the change, as GET /api/tasks/{id} shows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: invalid_transition. The round has been decided, or the task takes no usage any more.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/ai-providers:
+    get:
+      operationId: listAiProviders
+      summary: The managed list of AI providers
+      description: >
+        Every AI provider, sorted by name, for any signed-in role. The list is seeded with the common
+        tools and grows when a designer reports a provider that is new.
+      responses:
+        '200':
+          description: The providers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providers]
+                additionalProperties: false
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AiProvider'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
   /api/tasks/{id}/approve:
     post:
       operationId: approveTask
@@ -1086,7 +1182,7 @@ components:
         creditsTotal:
           type: string
           pattern: '^\d+\.\d{2}$'
-          description: AI credits spent over all rounds, a decimal string.
+          description: AI credits spent over all rounds of the task, a decimal string with two decimals.
         isOverdue:
           type: boolean
           description: The deadline is strictly before now and the task is neither completed nor cancelled.
@@ -1190,6 +1286,62 @@ components:
           type: string
           maxLength: 2000
           description: What the designer tells the buyer about the round. Stored as written; an empty string means no note.
+        aiUsage:
+          $ref: '#/components/schemas/AiUsageInput'
+    AiUsageInput:
+      type: array
+      description: >
+        The AI credits spent on the round, 0 to 20 lines; none means no AI was used. The same provider
+        may appear in several lines.
+      maxItems: 20
+      items:
+        type: object
+        required: [provider, credits]
+        additionalProperties: false
+        properties:
+          provider:
+            type: string
+            minLength: 1
+            maxLength: 50
+            description: >
+              The provider's name. Trimmed and white space collapsed by the server (1 to 50
+              characters after that), matched case-insensitively against the list of providers and
+              created on first use.
+          credits:
+            type: string
+            pattern: '^\d{1,7}(\.\d{1,2})?$'
+            description: A JSON string, 0 to 9999999.99 with at most two decimals. JSON numbers are refused.
+    ReplaceAiUsageRequest:
+      type: object
+      required: [lines]
+      additionalProperties: false
+      properties:
+        lines:
+          $ref: '#/components/schemas/AiUsageInput'
+    AiProvider:
+      type: object
+      required: [id, name]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+    AiUsageLine:
+      type: object
+      required: [provider, credits]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          description: The provider's name as the list stores it.
+        credits:
+          type: string
+          pattern: '^\d+\.\d{2}$'
+          description: Credits of this line, a decimal string with two decimals.
     Round:
       type: object
       description: One submission of a task and what the buyer decided about it.
@@ -1235,8 +1387,9 @@ components:
           pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
         aiUsage:
           type: array
-          description: The AI credits spent on the round. Always empty until the AI usage module exists.
-          items: {}
+          description: The AI credits reported for the round, one entry per line in the order they were written; empty when no AI was used.
+          items:
+            $ref: '#/components/schemas/AiUsageLine'
     Assignment:
       type: object
       required: [designer, assignedAt, endedAt, endedHow]

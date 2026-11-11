@@ -36,6 +36,9 @@
         <testsuite name="Files">
             <directory>tests/Files</directory>
         </testsuite>
+        <testsuite name="AiUsage">
+            <directory>tests/AiUsage</directory>
+        </testsuite>
         <testsuite name="Rounds">
             <directory>tests/Rounds</directory>
         </testsuite>

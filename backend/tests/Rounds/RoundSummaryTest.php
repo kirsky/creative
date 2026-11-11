@@ -9,8 +9,8 @@ use App\Tasks\RoundReader;
 use App\Tasks\TaskStatus;
 
 /**
- * What the board card says about a task's rounds: how many there were, the AI credits (none until
- * the usage module exists) and whether the task is "returning", that is, back in the pool because
+ * What the board card says about a task's rounds: how many there were, the AI credits (the sum of
+ * the usage lines, see tests/AiUsage) and whether the task is "returning", that is, back in the pool because
  * the latest round was sent back for revisions.
  */
 final class RoundSummaryTest extends RoundsTestCase

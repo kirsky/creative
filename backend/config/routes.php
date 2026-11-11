@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\AiUsage\Http\ListProvidersAction;
+use App\AiUsage\Http\ReplaceAiUsageAction;
 use App\Files\Http\DownloadAction;
 use App\Files\Http\UploadAction;
 use App\Identity\Http\LoginAction;
@@ -56,7 +58,10 @@ return static function (App $app): void {
     $app->post('/api/tasks/{id:[0-9]+}/pickup', PickUpAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/release', ReleaseAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/rounds', SubmitRoundAction::class);
+    $app->put('/api/tasks/{id:[0-9]+}/rounds/{n:[0-9]+}/ai-usage', ReplaceAiUsageAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/approve', ApproveAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/request-revisions', RequestRevisionsAction::class);
     $app->post('/api/tasks/{id:[0-9]+}/cancel', CancelAction::class);
+
+    $app->get('/api/ai-providers', ListProvidersAction::class);
 };

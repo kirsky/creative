@@ -10,13 +10,15 @@ use JsonSerializable;
 
 /**
  * One round of a task as its page shows it (schema Round): what the designer handed in and what the
- * buyer decided. $decision is null until decided, then revisions_requested or approved. $aiUsage is
- * part of the contract from the start and stays an empty list until the AI usage module fills it.
+ * buyer decided. $decision is null until decided, then revisions_requested or approved. $aiUsage is the
+ * AI credits reported for the round, one entry per line in the order they were written, each amount
+ * a decimal string with two decimals; an empty list when no AI was used.
  */
 final readonly class RoundView implements JsonSerializable
 {
     /**
      * @param list<array{id: int, name: string, size: int, mime: string}> $files
+     * @param list<array{provider: string, credits: string}> $aiUsage
      */
     public function __construct(
         public int $number,
@@ -27,6 +29,7 @@ final readonly class RoundView implements JsonSerializable
         public ?string $decision,
         public ?string $decisionReason,
         public ?DateTimeImmutable $decidedAt,
+        public array $aiUsage = [],
     ) {}
 
     /**
@@ -43,7 +46,7 @@ final readonly class RoundView implements JsonSerializable
             'decision' => $this->decision,
             'decisionReason' => $this->decisionReason,
             'decidedAt' => $this->decidedAt === null ? null : self::format($this->decidedAt),
-            'aiUsage' => [],
+            'aiUsage' => $this->aiUsage,
         ];
     }
 

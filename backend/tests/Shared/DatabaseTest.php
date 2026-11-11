@@ -161,6 +161,42 @@ final class DatabaseTest extends DatabaseTestCase
         }
     }
 
+    public function test_read_committed_transactions_see_rows_committed_by_others_after_their_first_read(): void
+    {
+        $this->database->pdo()->exec('CREATE TABLE IF NOT EXISTS isolation_probe (id INT PRIMARY KEY) ENGINE=InnoDB');
+
+        try {
+            $other = new Database($this->config);
+            // READ COMMITTED first: asking for it applies to that transaction only.
+            foreach ([true, false] as $readCommitted) {
+                $this->database->pdo()->exec('DELETE FROM isolation_probe');
+
+                $seen = $this->database->transaction(function () use ($other): array {
+                    $before = $this->scalar('SELECT COUNT(*) FROM isolation_probe');
+                    $other->pdo()->exec('INSERT INTO isolation_probe (id) VALUES (1)');
+
+                    return [$before, $this->scalar('SELECT COUNT(*) FROM isolation_probe')];
+                }, $readCommitted);
+
+                self::assertEquals($readCommitted ? [0, 1] : [0, 0], $seen);
+            }
+        } finally {
+            $this->database->pdo()->exec('DROP TABLE isolation_probe');
+        }
+    }
+
+    public function test_a_nested_transaction_cannot_ask_for_a_stronger_isolation_than_the_outer_one_has(): void
+    {
+        $this->database->transaction(function (): void {
+            $this->database->transaction(static fn(): null => null, true);
+        }, true);
+
+        $this->expectException(LogicException::class);
+        $this->database->transaction(function (): void {
+            $this->database->transaction(static fn(): null => null, true);
+        });
+    }
+
     public function test_every_table_except_the_phinx_log_is_truncated_between_tests(): void
     {
         $pdo = $this->database->pdo();
