@@ -10,9 +10,10 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "stylelint": "stylelint \"src/**/*.scss\"",
-    "typecheck": "tsc --noEmit -p jsconfig.json",
+    "typecheck": "tsc --noEmit -p jsconfig.json && tsc --noEmit -p e2e/jsconfig.json",
     "i18n:check": "node scripts/check-i18n-keys.js",
     "test": "jest",
+    "e2e": "playwright test",
     "check": "npm run lint && npm run format:check && npm run stylelint && npm run typecheck && npm run i18n:check && npm run test"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "@babel/preset-env": "8.0.7",
     "@babel/preset-react": "8.0.1",
     "@eslint/js": "9.39.5",
+    "@playwright/test": "1.65.0",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.9",

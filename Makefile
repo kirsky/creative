@@ -52,8 +52,32 @@ check: ## Run all quality gates
 watch: ## Rebuild frontend/dist on change (webpack --watch, no dev server)
 	$(COMPOSE) run --rm node npm run watch
 
-e2e: ## Run the Playwright end-to-end suite
-	$(COMPOSE) run --rm playwright npx playwright test $(ARGS)
+# DESTRUCTIVE, never part of `check`: it resets the demo data and gives every account a new
+# password (any credentials handed to reviewers stop working). The passwords live only in a shell
+# variable and in the environment of the docker CLI (`-e NAME` without a value, so they are not in
+# any process's arguments); nothing writes them to a file. After the run the result files are
+# searched for them, and the data is reset once more.
+e2e: ## DESTRUCTIVE: reset data, rotate all passwords, run Playwright; ARGS="story.spec.js"
+	@test -n "$$($(COMPOSE) ps -q nginx)" || { echo "error: the stack is not running, run make up" >&2; exit 1; }
+	$(NODE) npm run build
+	$(EXEC) php bin/console demo:reset
+	@set -u; \
+	creds="$$($(EXEC) composer demo:credentials:rotate)" && [ -n "$$creds" ] \
+		|| { echo "error: credential rotation failed" >&2; exit 1; }; \
+	status=0; \
+	E2E_CREDENTIALS="$$creds" $(COMPOSE) run --rm -T -e E2E_CREDENTIALS playwright npm run --silent e2e -- $(ARGS) || status=$$?; \
+	if [ -d frontend/e2e/.results ] && printf '%s\n' "$$creds" | cut -f2 | grep -rqFf - frontend/e2e/.results; then \
+		echo "error: a password was found under frontend/e2e/.results; that directory was deleted" >&2; \
+		rm -rf frontend/e2e/.results; status=1; \
+	fi; \
+	creds=; \
+	$(EXEC) php bin/console demo:reset >/dev/null || status=1; \
+	echo; \
+	echo "!!! make e2e ROTATED THE PASSWORD OF EVERY ACCOUNT and reset the demo data."; \
+	echo "!!! Credentials given to reviewers no longer work, and the new ones were never shown."; \
+	echo "!!! Before an evaluation: docker compose exec -T php composer demo:credentials:rotate"; \
+	echo "!!! and deliver the new credentials. Never run e2e on a demo that reviewers are using."; \
+	exit $$status
 
 demo-reset: ## Replace all task data with the demo scenario (keeps users and sessions)
 	$(EXEC) php bin/console demo:reset

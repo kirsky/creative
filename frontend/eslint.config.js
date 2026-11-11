@@ -5,7 +5,7 @@ const reactHooks = require('eslint-plugin-react-hooks');
 const prettier = require('eslint-config-prettier');
 
 module.exports = [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', '.npm-cache/'] },
+  { ignores: ['dist/', 'node_modules/', 'coverage/', '.npm-cache/', 'e2e/.results/'] },
   js.configs.recommended,
   {
     files: ['src/**/*.{js,jsx}'],
@@ -37,6 +37,14 @@ module.exports = [
     files: ['src/**/*.jsx'],
     ignores: ['**/*.test.jsx'],
     rules: { 'react/jsx-no-literals': 'error' },
+  },
+  {
+    // Playwright specs: Node modules (Playwright compiles them), with callbacks run in the page.
+    files: ['e2e/**/*.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser },
+    },
   },
   {
     // Tooling files run in Node as CommonJS.

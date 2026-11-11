@@ -3,3 +3,4 @@ node_modules
 coverage
 .npm-cache
 package-lock.json
+e2e/.results

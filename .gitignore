@@ -20,3 +20,5 @@ frontend/dist/*
 !frontend/dist/.gitkeep
 
 *.log
+# Playwright reports, failure artifacts and screenshots (make e2e)
+frontend/e2e/.results/

@@ -76,18 +76,24 @@ services:
     volumes:
       - ./frontend:/app
 
+  # `make e2e` only. The tag matches @playwright/test in frontend/package.json exactly.
   playwright:
     profiles: ["e2e"]
     image: mcr.microsoft.com/playwright:v1.65.0-noble
     init: true
-    ipc: host
+    # The host network, so the browser reaches nginx at 127.0.0.1:3000: Chromium keeps the app's
+    # Secure session cookie on localhost over plain HTTP, but not on any other http:// origin.
+    network_mode: host
+    # Chromium needs more shared memory than Docker's 64 MB default (instead of `ipc: host`).
+    shm_size: 1gb
+    # The host user, so reports and screenshots in ./frontend are not owned by root.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     working_dir: /app
     environment:
-      BASE_URL: http://nginx
+      BASE_URL: http://127.0.0.1:3000
+      HOME: /tmp
     volumes:
       - ./frontend:/app
-    depends_on:
-      - nginx
 
 volumes:
   db_data:
