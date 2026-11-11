@@ -43,6 +43,14 @@ paths:
         valid, and the session this browser presented (if any) ends. Unknown user, wrong password
         and an account without credentials all give the same 401 invalid_credentials. The body must
         be application/json; anything else is 403 forbidden (a cross-site form cannot send JSON).
+
+
+        Rate limit: 5 failed attempts per 15 minutes per username and per client address (an IPv4
+        address, or an IPv6 /64 prefix). Usernames are compared as the database compares them, so
+        case, trailing spaces and accents do not make a new username. Once either limit is reached
+        every attempt is 429 rate_limited, even with the right password, until the oldest of the
+        failures is 15 minutes old. A 429 is not counted as a failure and does not extend the wait;
+        a successful login is not counted either and does not reset the count.
       security: []
       requestBody:
         required: true
@@ -86,6 +94,18 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '429':
+          description: >
+            rate_limited. Too many failed attempts for this username or this address, or another
+            login for the same username or address is still being checked. params.retryAfterSeconds
+            and the Retry-After header say how long to wait.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitedError'
   /api/auth/logout:
     post:
       operationId: logout
@@ -169,6 +189,12 @@ components:
       description: creative_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax
       schema:
         type: string
+    RetryAfter:
+      required: true
+      description: Whole seconds to wait before trying again (the same number as params.retryAfterSeconds).
+      schema:
+        type: integer
+        minimum: 1
   responses:
     Unauthenticated:
       description: No valid session (code unauthenticated).
@@ -237,6 +263,26 @@ components:
               type: object
               description: Values the message needs (for example a limit). Present only when there are some.
               additionalProperties: true
+    RateLimitedError:
+      description: The error envelope of a 429 rate_limited answer, which always says how long to wait.
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          required: [error]
+          properties:
+            error:
+              type: object
+              required: [params]
+              properties:
+                code:
+                  const: rate_limited
+                params:
+                  type: object
+                  required: [retryAfterSeconds]
+                  properties:
+                    retryAfterSeconds:
+                      type: integer
+                      minimum: 1
     ErrorCode:
       type: string
       description: What went wrong. The frontend maps each code to a translated message.
